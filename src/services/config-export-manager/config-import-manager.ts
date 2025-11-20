@@ -5,13 +5,15 @@
 
 import { open } from '@tauri-apps/plugin-dialog';
 import { readTextFile } from '@tauri-apps/plugin-fs';
+import { invoke } from '@tauri-apps/api/core';
 import type {
   ConfigImportResult,
   ConfigImportOptions,
   ConfigValidationResult,
   ConfigProgressCallback,
   EncryptedConfigData,
-  EncryptionProvider
+  EncryptionProvider,
+  RestoreResult
 } from './types';
 
 /**
@@ -112,12 +114,18 @@ export class ConfigImportManager {
         throw new Error(`配置文件格式错误: ${validation.errors.join(', ')}`);
       }
 
+      this.updateProgress('writing', '正在恢复备份数据...');
+
+      // 恢复备份数据到本地
+      const restoreInfo = await this.restoreBackupsToLocal(configData);
+
       this.updateProgress('completed', '配置文件解密成功');
 
       return {
         success: true,
-        message: '配置文件解密成功',
-        configData
+        message: `配置文件解密成功，已恢复 ${restoreInfo.restoredCount} 个账号`,
+        configData,
+        restoreInfo
       };
 
     } catch (error) {
@@ -233,6 +241,29 @@ export class ConfigImportManager {
     }
 
     return true;
+  }
+
+  /**
+   * 恢复备份数据到本地
+   *
+   * @param configData 解密后的配置数据
+   * @returns 恢复结果
+   */
+  private async restoreBackupsToLocal(configData: EncryptedConfigData): Promise<RestoreResult> {
+    // 直接调用后端命令处理恢复逻辑
+    const restoreResult = await invoke<RestoreResult>('restore_backup_files', {
+      backups: configData.backups
+    });
+
+    // 更新进度
+    if (restoreResult.restoredCount > 0) {
+      this.updateProgress('writing', `已恢复 ${restoreResult.restoredCount} 个账号`);
+    }
+    if (restoreResult.failed.length > 0) {
+      this.updateProgress('writing', `${restoreResult.failed.length} 个账号恢复失败`);
+    }
+
+    return restoreResult;
   }
 
   /**

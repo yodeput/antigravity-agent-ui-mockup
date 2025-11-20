@@ -3,12 +3,18 @@
  * 统一管理导入导出相关的所有类型
  */
 
+export interface BackupData {
+  filename: string;
+  content: any;
+  timestamp: number;
+}
+
 export interface EncryptedConfigData {
   version: string;
   exportTime: string;
   exportUser: string;
   backupCount: number;
-  backups: string[];
+  backups: BackupData[];
   settings: {
     theme: string;
     autoBackup: boolean;
@@ -21,11 +27,20 @@ export interface EncryptedConfigData {
   };
 }
 
+export interface RestoreResult {
+  restoredCount: number;
+  failed: Array<{
+    filename: string;
+    error: string;
+  }>;
+}
+
 export interface ConfigImportResult {
   success: boolean;
   message: string;
   encryptedData?: string;
   configData?: EncryptedConfigData;
+  restoreInfo?: RestoreResult;
 }
 
 export interface ConfigExportResult {

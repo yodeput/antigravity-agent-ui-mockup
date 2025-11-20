@@ -78,11 +78,32 @@ const ExportImportActions: React.FC<ExportImportActionsProps> = ({
 
             if (decryptResult.success && decryptResult.configData) {
               const configData = decryptResult.configData;
-              showStatus(`配置文件导入成功 (版本: ${configData.version})`);
+              const restoreInfo = decryptResult.restoreInfo;
 
-              // 显示配置摘要
-              const summary = configManager.generateConfigSummary(configData);
-              console.log('配置文件摘要:', summary);
+              if (restoreInfo) {
+                // 显示详细的恢复结果
+                const successCount = restoreInfo.restoredCount;
+                const failedCount = restoreInfo.failed.length;
+
+                let statusMessage = `导入成功！已恢复 ${successCount} 个账号`;
+                if (failedCount > 0) {
+                  statusMessage += `，${failedCount} 个失败`;
+                  showStatus(statusMessage, true);
+                  console.error('恢复失败的账号:', restoreInfo.failed);
+                } else {
+                  showStatus(statusMessage, false);
+                }
+
+                // 显示配置摘要
+                const summary = configManager.generateConfigSummary(configData);
+                console.log('配置文件摘要:', summary);
+              } else {
+                showStatus(`配置文件导入成功 (版本: ${configData.version})`);
+
+                // 显示配置摘要
+                const summary = configManager.generateConfigSummary(configData);
+                console.log('配置文件摘要:', summary);
+              }
 
               // 延迟刷新以确保数据完整性
               setTimeout(() => {

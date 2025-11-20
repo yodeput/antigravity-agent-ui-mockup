@@ -5,11 +5,13 @@
 
 import { save } from '@tauri-apps/plugin-dialog';
 import { writeTextFile } from '@tauri-apps/plugin-fs';
+import { invoke } from '@tauri-apps/api/core';
 import type {
   ConfigExportResult,
   ConfigExportOptions,
   EncryptedConfigData,
-  EncryptionProvider
+  EncryptionProvider,
+  BackupData
 } from './types';
 import { AntigravityService } from '../antigravity-service';
 
@@ -70,11 +72,11 @@ export class ConfigExportHandler {
    * @throws 当没有用户数据时抛出错误
    */
   private async collectConfigData(): Promise<EncryptedConfigData> {
-    // 获取当前备份列表
-    const backupList = await AntigravityService.getBackupList();
+    // 从后端获取所有备份文件的内容
+    const backupsWithContent = await invoke<BackupData[]>('collect_backup_contents');
 
     // 检查是否有用户数据可以导出
-    if (backupList.length === 0) {
+    if (backupsWithContent.length === 0) {
       throw new Error('没有找到任何用户信息，无法导出配置文件');
     }
 
@@ -83,8 +85,8 @@ export class ConfigExportHandler {
       version: '1.1.0',
       exportTime: new Date().toISOString(),
       exportUser: 'Antigravity Agent User',
-      backupCount: backupList.length,
-      backups: backupList,
+      backupCount: backupsWithContent.length,
+      backups: backupsWithContent,
       settings: {
         theme: 'dark',
         autoBackup: true,
@@ -170,16 +172,7 @@ export class ConfigExportHandler {
    * @returns 平台信息字符串
    */
   private getPlatformInfo(): string {
-    if (typeof navigator !== 'undefined') {
-      return navigator.platform || 'Unknown';
-    }
-
-    // 在 Node.js 环境中的备用方案
-    if (typeof process !== 'undefined' && process.platform) {
-      return process.platform;
-    }
-
-    return 'Unknown';
+    return navigator.platform || 'Unknown';
   }
 
   /**
@@ -188,15 +181,9 @@ export class ConfigExportHandler {
    * @returns 用户代理字符串
    */
   private getUserAgentInfo(): string {
-    if (typeof navigator !== 'undefined' && navigator.userAgent) {
+    if (navigator.userAgent) {
       return navigator.userAgent.substring(0, 100);
     }
-
-    // 在 Node.js 环境中的备用方案
-    if (typeof process !== 'undefined') {
-      return `Node.js ${process.version}`;
-    }
-
     return 'Unknown';
   }
 
