@@ -3,8 +3,6 @@
 > 开箱即用的 Antigravity 账户管理程序。
 
 ![dashborad.png](screenshots/dashboard.png)
-![dashborad.png](screenshots/settings.png)
-
 
 Windows/MacOS ✅️
 

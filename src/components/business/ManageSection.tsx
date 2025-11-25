@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from 'react';
-import {Trash2, User} from 'lucide-react';
+import {Trash2} from 'lucide-react';
 import {maskBackupFilename} from '../../utils/username-masking';
 import {useUserManagement} from '@/modules/user-management/store';
 import {BaseTooltip} from '@/components/base-ui/BaseTooltip';
@@ -8,6 +8,9 @@ import {BaseSpinner} from '@/components/base-ui/BaseSpinner';
 import BusinessConfirmDialog from './ConfirmDialog';
 import BusinessActionButton from './ActionButton';
 import type {AntigravityAccount} from '@/commands/types/account.types';
+import {useLanguageServerState} from "@/hooks/use-language-server-state.ts";
+import {useLanguageServerUserInfo} from "@/modules/use-language-server-user-info.ts";
+import {GlassProgressBar} from "@/components/base-ui/GlassProgressBar.tsx";
 
 interface BusinessManageSectionProps {
   showStatus: (message: string, isError?: boolean) => void;
@@ -20,7 +23,11 @@ const BusinessManageSection: React.FC<BusinessManageSectionProps> = ({
   isInitialLoading = false,
   onUserClick
 }) => {
-  const {users, getUsers, deleteUser, clearAllUsers, switchUser} = useUserManagement();
+  const {users, getUsers, deleteUser, clearAllUsers, switchUser, getCurrentUser} = useUserManagement();
+  // email
+  const [currentUser, setCurrentUser] = useState<string>(null);
+  const languageServerUserInfo = useLanguageServerUserInfo();
+  const {isLanguageServerStateInitialized} = useLanguageServerState();
   const [isLoading, setIsLoading] = useState(true);
 
   // 组件挂载时获取用户列表
@@ -38,6 +45,18 @@ const BusinessManageSection: React.FC<BusinessManageSectionProps> = ({
 
     loadUsers();
   }, [getUsers, showStatus]);
+
+  useEffect(() => {
+    if (isLanguageServerStateInitialized) {
+      users.forEach(user => {
+        languageServerUserInfo.fetchData(user)
+      })
+    }
+    getCurrentUser()
+      .then(user => {
+        setCurrentUser(user.email)
+      })
+  }, [users, isLanguageServerStateInitialized]);
 
   const [isClearDialogOpen, setIsClearDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -157,7 +176,21 @@ const BusinessManageSection: React.FC<BusinessManageSectionProps> = ({
                     </span>
                   </BaseTooltip>
                 </div>
-                <div className="flex gap-2 flex-shrink-0">
+                <div className="flex gap-2 flex-shrink-0 items-center">
+                  {
+                    currentUser === user.email && languageServerUserInfo.users[user.id] && <div className={"flex flex-col flex-wrap gap-1"}>
+                      {languageServerUserInfo.users[user.id].userStatus.cascadeModelConfigData.clientModelConfigs.map((model) => {
+                        return <GlassProgressBar
+                          key={model.label}
+                          value={1 - model.quotaInfo.remainingFraction}
+                          gradientFrom="from-purple-500"
+                          gradientTo="to-pink-500"
+                          label={model.label}
+                          className={"h-5"}
+                        />
+                      })}
+                    </div>
+                  }
                   <BaseTooltip content="切换到此用户并自动启动 Antigravity" side="bottom">
                     <div onClick={(e) => e.stopPropagation()}>
                       <BusinessActionButton

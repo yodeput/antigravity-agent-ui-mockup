@@ -2,7 +2,7 @@
  * 用户管理类型定义 - 简化版
  */
 
-import type { AntigravityAccount } from '@/commands/types/account.types';
+import type {AntigravityAccount, AntigravityAuthInfo} from '@/commands/types/account.types';
 
 // Store 状态
 export interface UserStoreState {
@@ -16,7 +16,7 @@ export interface UserStoreActions {
   deleteUser: (email: string) => Promise<void>;
   addCurrentUser: () => Promise<void>;
   switchUser: (email: string) => Promise<void>;
-  currentUser: () => Promise<string | null>;
+  getCurrentUser: () => Promise<AntigravityAuthInfo | null>;
 
   // 批量操作
   clearAllUsers: () => Promise<void>;

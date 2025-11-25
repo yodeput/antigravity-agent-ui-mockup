@@ -36,7 +36,7 @@ pub async fn language_server_get_user_status(
         .map_err(|e| format!("构建 HTTP 客户端失败: {e}"))?;
 
     let metadata = RequestMetadata {
-        api_key,
+        api_key: api_key.clone(),
         ..Default::default()
     };
 
@@ -65,14 +65,32 @@ pub async fn language_server_get_user_status(
         .header("sec-fetch-site", "cross-site")
         .header("x-codeium-csrf-token", csrf.clone());
 
-    // 打印请求信息（脱敏 api_key）
-    tracing::info!(
-        target_url = %target_url,
-        https_port = port,
-        method = "POST",
-        csrf_token = %csrf[..csrf.len().min(8)],
-        "language_server_get_user_status request"
-    );
+
+    // 打印完整的请求信息
+    let body_str = String::from_utf8_lossy(&body_bytes);
+    // tracing::info!(
+    //     target_url = %target_url,
+    //     https_port = port,
+    //     method = "POST",
+    //     csrf_token = %csrf,
+    //     api_key = %api_key,
+    //     request_body = %body_str,
+    //     headers = ?[
+    //         ("accept", "*/*"),
+    //         ("accept-language", "en-US"),
+    //         ("connect-protocol-version", "1"),
+    //         ("content-type", "application/json"),
+    //         ("priority", "u=1, i"),
+    //         ("sec-ch-ua", "\"Not)A;Brand\";v=\"8\", \"Chromium\";v=\"138\""),
+    //         ("sec-ch-ua-mobile", "?0"),
+    //         ("sec-ch-ua-platform", "\"Windows\""),
+    //         ("sec-fetch-dest", "empty"),
+    //         ("sec-fetch-mode", "cors"),
+    //         ("sec-fetch-site", "cross-site"),
+    //         ("x-codeium-csrf-token", &csrf)
+    //     ],
+    //     "language_server_get_user_status request"
+    // );
 
     let resp = req
         .body(body_bytes)

@@ -8,7 +8,7 @@ import { logger } from '../../utils/logger';
 import type { UserStoreState, UserStoreActions } from './types';
 import type { AntigravityCurrentUserInfo, BackupCurrentAccountResult } from '../../types/tauri';
 import {AccountCommands} from '@/commands/AccountCommands.ts';
-import type {AntigravityAccount} from '@/commands/types/account.types.ts';
+import type {AntigravityAccount, AntigravityAuthInfo} from '@/commands/types/account.types.ts';
 
 // 常量定义
 const FILE_WRITE_DELAY_MS = 500; // 等待文件写入完成的延迟时间
@@ -116,7 +116,7 @@ export const useUserManagement = create<UserStoreState & UserStoreActions>()((se
     }
   },
 
-  currentUser: async (): Promise<string | null> => {
+  getCurrentUser: async (): Promise<AntigravityAuthInfo> => {
     logger.info('开始获取当前用户', { module: 'UserManagement' });
 
     try {
@@ -124,12 +124,12 @@ export const useUserManagement = create<UserStoreState & UserStoreActions>()((se
       const currentInfo = await AccountCommands.getCurrentInfo();
 
       // 直接检查 email 字段
-      if (currentInfo?.email) {
+      if (currentInfo) {
         logger.info('成功获取当前用户', {
           module: 'UserManagement',
           email: currentInfo.email
         });
-        return currentInfo.email;
+        return currentInfo;
       }
 
       logger.warn('未找到当前登录用户', { module: 'UserManagement' });
