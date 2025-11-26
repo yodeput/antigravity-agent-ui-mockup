@@ -229,8 +229,6 @@ const BusinessSettingsDialog: React.FC<BusinessSettingsDialogProps> = ({
 
             {/* 路径设置组 */}
             <div className="space-y-4">
-              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-1">路径配置</h3>
-
               <div className="space-y-3">
                 <div className="group">
                   <label className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-1.5 block px-1">可执行文件</label>

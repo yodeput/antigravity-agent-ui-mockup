@@ -4,7 +4,7 @@
  * @param email 邮箱地址
  * @returns 打码后的邮箱
  */
-export const maskUsername = (email: string): string => {
+export const maskEmail = (email: string): string => {
   if (!email) {
     return email;
   }
@@ -35,16 +35,15 @@ export const maskUsername = (email: string): string => {
   return localPart.charAt(0) + stars + localPart.charAt(localPart.length - 1) + domainPart;
 };
 
-/**
- * 对备份文件名（邮箱）进行打码处理
- * @param backupFile 备份文件名（邮箱地址）
- * @returns 打码后的备份文件名
- */
-export const maskBackupFilename = (backupFile: string): string => {
-  if (!backupFile) {
-    return backupFile;
+export const maskName = (name: string): string => {
+  if (!name) {
+    return name;
+  }
+  // 如果少于2个字符，全打码
+  if (name.length <= 2) {
+    return "**";
   }
 
-  // 直接对整个文件名（邮箱）进行打码
-  return maskUsername(backupFile);
-};
+  // 保留首字符和尾字符
+  return name.charAt(0) + '*'.repeat(name.length - 2) + name.charAt(name.length - 1);
+}

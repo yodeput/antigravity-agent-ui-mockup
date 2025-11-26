@@ -13,7 +13,6 @@ const FILE_WRITE_DELAY_MS = 500; // 等待文件写入完成的延迟时间
 export interface AntigravityAccountState {
   users: AntigravityAccount[];
   currentAuthInfo: AntigravityAuthInfo | null;
-  isLoading: boolean;
 }
 
 // Store Actions
@@ -36,7 +35,6 @@ export interface AntigravityAccountActions {
 export const useAntigravityAccount = create<AntigravityAccountState & AntigravityAccountActions>()((set, get) => ({
   // 初始状态
   users: [],
-  isLoading: false,
   currentAuthInfo: null,
 
   // ============ 基础操作 ============

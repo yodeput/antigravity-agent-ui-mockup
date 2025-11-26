@@ -1,17 +1,18 @@
-import React, { useCallback, useEffect, useState } from "react";
-import type { AntigravityAccount } from "@/commands/types/account.types.ts";
+import React, {useCallback, useEffect, useState} from "react";
+import type {AntigravityAccount} from "@/commands/types/account.types.ts";
 import BusinessUserDetail from "@/components/business/UserDetail.tsx";
-import { useAntigravityAccount, useCurrentAntigravityAccount } from "@/modules/use-antigravity-account.ts";
-import { useLanguageServerUserInfo } from "@/modules/use-language-server-user-info";
-import { useLanguageServerState } from "@/hooks/use-language-server-state.ts";
-import { BaseTooltip } from "@/components/base-ui/BaseTooltip.tsx";
+import {useAntigravityAccount, useCurrentAntigravityAccount} from "@/modules/use-antigravity-account.ts";
+import {useLanguageServerUserInfo} from "@/modules/use-language-server-user-info";
+import {useLanguageServerState} from "@/hooks/use-language-server-state.ts";
+import {BaseTooltip} from "@/components/base-ui/BaseTooltip.tsx";
 import BusinessActionButton from "@/components/business/ActionButton.tsx";
-import { Trash2 } from "lucide-react";
+import {Trash2} from "lucide-react";
 
 import BusinessConfirmDialog from "@/components/business/ConfirmDialog.tsx";
 import toast from 'react-hot-toast';
-import { QuotaDashboard } from "@/components/business/QuotaDashboard";
-import { UserListItem } from "@/components/business/UserListItem.tsx";
+import {QuotaDashboard} from "@/components/business/QuotaDashboard";
+import {UserListItem} from "@/components/business/UserListItem.tsx";
+import {maskEmail} from "@/utils/username-masking.ts";
 
 export function AppUserPanel() {
   const [isUserDetailOpen, setIsUserDetailOpen] = useState(false);
@@ -57,15 +58,13 @@ export function AppUserPanel() {
   }, [antigravityAccount.users, isLanguageServerStateInitialized]);
 
   // 获取当前用户的配额数据
-  const currentQuotaData = currentAntigravityAccount && languageServerUserInfo.users[currentAntigravityAccount?.id]
+  const currentQuotaData = currentAntigravityAccount && languageServerUserInfo.users[currentAntigravityAccount?.id]?.userStatus
     ? languageServerUserInfo.users[currentAntigravityAccount.id].userStatus.cascadeModelConfigData.clientModelConfigs
     : [];
 
   const [isClearDialogOpen, setIsClearDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [backupToDelete, setBackupToDelete] = useState<string | null>(null);
-
-
 
   const handleDeleteBackup = (backupName: string) => {
     setBackupToDelete(backupName);
@@ -87,10 +86,23 @@ export function AppUserPanel() {
 
   const handleSwitchAccount = async (backupName: string) => {
     try {
+      // 显示正在切换的提示
+      toast.loading(`正在切换到用户: ${maskEmail(backupName)}...`, {
+        id: `switching-${backupName}`,
+      });
+
       await antigravityAccount.switchUser(backupName);
-      toast.success(`已切换到用户: ${backupName}`);
+
+      // 切换成功，替换loading提示为成功提示
+      toast.success(`✅ 已成功切换到用户: ${maskEmail(backupName)}`, {
+        id: `switching-${backupName}`,
+        duration: 3000,
+      });
     } catch (error) {
-      toast.error(`切换用户失败: ${error}`);
+      toast.error(`❌ 切换用户失败: ${error}`, {
+        id: `switching-${backupName}`,
+        duration: 4000,
+      });
     }
   };
 
@@ -138,18 +150,32 @@ export function AppUserPanel() {
 
         <div className={antigravityAccount.users.length === 0 ? "backup-list-empty" : "backup-list-vertical"}>
           {antigravityAccount.users.length === 0 ? (
-            <p className="text-light-text-muted">暂无用户</p>
+            <div className="flex flex-col items-center justify-center py-12 px-6 text-center">
+              <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4">
+                <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+                暂无用户备份
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 max-w-md leading-relaxed">
+                在 Antigravity 登录账户后，本程序会自动读取。
+              </p>
+            </div>
           ) : (
-            antigravityAccount.users.map((user, index) => (
-              <UserListItem
-                key={`${user.email}-${index}`}
-                user={user}
-                isCurrent={currentAntigravityAccount?.email === user.email}
-                onSelect={handleUserClick}
-                onSwitch={handleSwitchAccount}
-                onDelete={handleDeleteBackup}
-              />
-            ))
+            <div className="space-y-2">
+              {antigravityAccount.users.map((user, index) => (
+                <UserListItem
+                  key={`${user.email}-${index}`}
+                  user={user}
+                  isCurrent={currentAntigravityAccount?.email === user.email}
+                  onSelect={handleUserClick}
+                  onSwitch={handleSwitchAccount}
+                  onDelete={handleDeleteBackup}
+                />
+              ))}
+            </div>
           )}
         </div>
       </section>
