@@ -15,20 +15,19 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  # 删除旧的 autobuild release，确保每次都创建新的
+  # 清理旧的 autobuild release assets，但保留 tag
   cleanup-old-release:
     runs-on: ubuntu-latest
     steps:
-      - name: Delete old autobuild release and tag
+      - name: Delete old autobuild release assets
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         continue-on-error: true
         run: |
-          # 删除 release（会自动删除关联的 assets）
+          # 只删除 release，不删除 tag（避免并发构建冲突）
+          # GitHub 会在删除 release 后保留 tag，第一个 build job 会重新创建 release
           gh release delete autobuild --repo ${{ github.repository }} --yes || echo "No release to delete"
-          # 删除 tag - 使用 GitHub API 而不是 git push
-          gh api -X DELETE repos/${{ github.repository }}/git/refs/tags/autobuild || echo "No tag to delete"
-          echo "✅ Cleaned up old autobuild release"
+          echo "✅ Cleaned up old autobuild release (tag preserved)"
 
   build:
     needs: cleanup-old-release
@@ -36,7 +35,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - platform: macos-latest
+          - platform: macos-13  # 修正：统一使用 macos-13
             arch: aarch64
             runs-on: macos-13
             target: aarch64-apple-darwin
