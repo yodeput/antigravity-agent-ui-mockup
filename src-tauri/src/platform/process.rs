@@ -77,26 +77,18 @@ fn get_antigravity_process_patterns() -> Vec<ProcessPattern> {
     match std::env::consts::OS {
         "macos" => {
             vec![
-                // 主要进程：精确匹配主进程名，必须结合路径验证
-                ProcessPattern::ExactName("Antigravity"),
-                ProcessPattern::ExactName("Electron"), // 仅当路径验证通过时
-
-                // 精确路径匹配：确保只匹配真正的 Antigravity.app
+                // 主进程：Electron（Antigravity的包装进程），必须通过路径验证
                 ProcessPattern::CmdContains("/Applications/Antigravity.app/Contents/MacOS/Electron"),
-                ProcessPattern::CmdContains("/Applications/Antigravity.app/Contents/MacOS/Antigravity"),
-                ProcessPattern::CmdContains("Antigravity.app/Contents/Frameworks/Antigravity Helper"),
 
-                // 便携版支持：允许非 /Applications 路径，但必须包含完整应用结构
-                ProcessPattern::CmdEndsWith("/Antigravity.app/Contents/MacOS/Electron"),
-                ProcessPattern::CmdEndsWith("/Antigravity.app/Contents/MacOS/Antigravity"),
+                // Helper 进程：Antigravity Helper系列（GPU、Renderer、Plugin等）
+                ProcessPattern::CmdContains("Antigravity.app/Contents/Frameworks/Antigravity Helper"),
             ]
         }
         "windows" => {
             vec![
                 ProcessPattern::ExactName("Antigravity.exe"),
+                // 兜底，目前未使用
                 ProcessPattern::ExactName("Antigravity"),
-                ProcessPattern::Contains("Antigravity"),
-                ProcessPattern::CmdContains("Antigravity.exe"),
             ]
         }
         "linux" => {
@@ -110,8 +102,7 @@ fn get_antigravity_process_patterns() -> Vec<ProcessPattern> {
         }
         _ => {
             vec![
-                ProcessPattern::Contains("Antigravity"),
-                ProcessPattern::Contains("antigravity"),
+                ProcessPattern::ExactName("Antigravity"),
             ]
         }
     }
@@ -119,35 +110,40 @@ fn get_antigravity_process_patterns() -> Vec<ProcessPattern> {
 
 /// 检查进程是否匹配 Antigravity 模式
 fn matches_antigravity_process(process_name: &str, process_cmd: &str, patterns: &[ProcessPattern]) -> bool {
+    let mut matched = false;
     for pattern in patterns {
         match pattern {
             ProcessPattern::ExactName(name) => {
                 if process_name == *name {
                     tracing::debug!("✅ 精确匹配进程名: {}", name);
-                    return true;
+                    tracing::info!("🎯 匹配模式: ProcessPattern::ExactName(\"{}\")", name);
+                    matched = true;
                 }
             }
             ProcessPattern::Contains(text) => {
                 if process_name.contains(text) || process_cmd.contains(text) {
                     tracing::debug!("✅ 包含匹配: {}", text);
-                    return true;
+                    tracing::info!("🎯 匹配模式: ProcessPattern::Contains(\"{}\")", text);
+                    matched = true;
                 }
             }
             ProcessPattern::CmdContains(text) => {
                 if process_cmd.contains(text) {
                     tracing::debug!("✅ 命令行包含匹配: {}", text);
-                    return true;
+                    tracing::info!("🎯 匹配模式: ProcessPattern::CmdContains(\"{}\")", text);
+                    matched = true;
                 }
             }
             ProcessPattern::CmdEndsWith(suffix) => {
                 if process_cmd.ends_with(suffix) {
                     tracing::debug!("✅ 命令行后缀匹配: {}", suffix);
-                    return true;
+                    tracing::info!("🎯 匹配模式: ProcessPattern::CmdEndsWith(\"{}\")", suffix);
+                    matched = true;
                 }
             }
         }
     }
-    false
+    matched
 }
 
 /// 进程匹配模式
