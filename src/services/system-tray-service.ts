@@ -12,13 +12,6 @@ export interface SystemTrayStatus {
   message: string;
 }
 
-export interface SystemTrayFullStatus {
-  runtime_enabled: boolean;
-  tray_exists: boolean;
-  saved_state: boolean;
-  is_consistent: boolean;
-}
-
 /**
  * 系统托盘服务类 - 纯调用接口，所有逻辑由后端处理
  */

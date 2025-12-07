@@ -6,7 +6,7 @@ import {useAvailableModels} from "@/modules/use-available-models.ts";
 
 import BusinessConfirmDialog from "@/components/business/ConfirmDialog.tsx";
 import toast from 'react-hot-toast';
-import {maskEmail, maskName} from "@/utils/username-masking.ts";
+import {maskEmail, maskName} from "@/utils/string-masking.ts";
 import {useAppGlobalLoader} from "@/modules/use-app-global-loader.ts";
 import {AccountSessionListCard} from "@/components/business/AccountSessionListCard.tsx";
 

@@ -1,11 +1,7 @@
 import React from 'react';
-import { X, Download, RotateCw, AlertTriangle } from 'lucide-react';
+import { Download, RotateCw, AlertTriangle } from 'lucide-react';
 import { UpdateState, UpdateInfo, DownloadProgress } from '../../services/updateService';
-import {
-  BaseDialog,
-  BaseDialogContent,
-  BaseDialogHeader,
-} from '@/components/base-ui/BaseDialog';
+import { Modal } from 'antd';
 import { BaseButton } from '@/components/base-ui/BaseButton';
 import { BaseProgress } from '@/components/base-ui/BaseProgress';
 
@@ -32,8 +28,6 @@ const BusinessUpdateDialog: React.FC<BusinessUpdateDialogProps> = ({
   onInstall,
   onDismiss,
 }) => {
-  if (!isOpen) return null;
-
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return '0 B';
     const k = 1024;
@@ -170,18 +164,21 @@ const BusinessUpdateDialog: React.FC<BusinessUpdateDialogProps> = ({
   };
 
   return (
-    <BaseDialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <BaseDialogContent>
-        <BaseDialogHeader>
-          <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-            <Download className="w-5 h-5 text-blue-500" />
-            应用更新
-          </h3>
-        </BaseDialogHeader>
-
+    <Modal
+      open={isOpen}
+      onCancel={onClose}
+      title={
+        <div className="text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+          <Download className="w-5 h-5 text-blue-500" />
+          应用更新
+        </div>
+      }
+      footer={null}
+    >
+      <div className="mt-4">
         {renderContent()}
-      </BaseDialogContent>
-    </BaseDialog>
+      </div>
+    </Modal>
   );
 };
 

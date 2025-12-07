@@ -207,7 +207,7 @@ const AppToolbar = () => {
               {/* 设置按钮 */}
               <button
                 onClick={() => setIsSettingsOpen(true)}
-                className="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                className="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer"
                 title="设置"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -234,14 +234,9 @@ const AppToolbar = () => {
         description={confirmDialog.description}
         onConfirm={confirmDialog.onConfirm}
         onCancel={() => {
-          logger.info('用户取消了登录新账户操作', {
-            module: 'AppToolbar',
-        action: 'backup_and_restart_cancelled'
-      });
           setConfirmDialog(prev => ({ ...prev, isOpen: false }));
         }}
       />
-
   
       {/* 更新对话框 */}
       <BusinessUpdateDialog

@@ -18,17 +18,17 @@ function App() {
   useDevToolsShortcut();
 
   // 用户管理
-  const { insertOrUpdateCurrent } = useAntigravityAccount();
+  const antigravityAccount = useAntigravityAccount();
 
   // 监听数据库变化事件
-  const { initializeMonitoring, addListener } = useDbMonitoringStore();
+  const dbMonitoringActions = useDbMonitoringStore();
 
   useEffect(() => {
     // 初始化监控（自动启动）
-    initializeMonitoring();
+    dbMonitoringActions.initializeMonitoring();
 
     // 添加事件监听器
-    return addListener(DATABASE_EVENTS.DATA_CHANGED, insertOrUpdateCurrent);
+    return dbMonitoringActions.addListener(DATABASE_EVENTS.DATA_CHANGED, antigravityAccount.insertOrUpdateCurrent);
   }, []);
 
   // 启动 Antigravity 进程状态自动检查
