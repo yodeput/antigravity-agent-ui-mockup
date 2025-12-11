@@ -1,1 +1,5 @@
 @import "tailwindcss";
+
+#app {
+    @apply h-screen w-screen flex flex-1 flex-col
+}

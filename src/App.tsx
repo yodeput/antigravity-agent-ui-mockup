@@ -76,9 +76,7 @@ function App() {
   return <>
     <TooltipProvider>
       <AppToolbar />
-      <div className="container">
-        <AppContent />
-      </div>
+      <AppContent />
     </TooltipProvider>
     <Toaster
       position="bottom-right"
