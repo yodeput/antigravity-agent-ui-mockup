@@ -38,15 +38,6 @@ export class PlatformCommands {
   }
 
   /**
-   * 验证 Antigravity 数据目录路径
-   * @param path 目录路径
-   * @returns 是否有效
-   */
-  static async validatePath(path: string): Promise<boolean> {
-    return invoke('validate_antigravity_path', { path });
-  }
-
-  /**
    * 验证 Antigravity 可执行文件路径
    * @param path 文件路径
    * @returns 是否有效
@@ -56,20 +47,11 @@ export class PlatformCommands {
   }
 
   /**
-   * 保存用户自定义的 Antigravity 数据目录路径
-   * @param path 目录路径
-   * @returns 保存结果消息
-   */
-  static async savePath(path: string): Promise<string> {
-    return invoke('save_antigravity_path', { path });
-  }
-
-  /**
    * 保存用户自定义的 Antigravity 可执行文件路径
    * @param path 文件路径
    * @returns 保存结果消息
    */
-  static async saveExecutable(path: string): Promise<string> {
+  static async saveAntigravityExecutable(path: string): Promise<string> {
     return invoke('save_antigravity_executable', { path });
   }
 

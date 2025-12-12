@@ -58,7 +58,7 @@ export const useAntigravityAccount = create<AntigravityAccountState & Antigravit
       // 2. 检查是否有有效的用户信息（通过API Key或用户状态判断）
       if (currentInfo?.auth.access_token) {
         // 3. 执行备份操作
-        await AccountCommands.backupAntigravityCurrentAccount();
+        await AccountCommands.saveAntigravityCurrentAccount();
 
         // 4. 等待文件写入完成
         await new Promise(resolve => setTimeout(resolve, FILE_WRITE_DELAY_MS));
@@ -84,7 +84,7 @@ export const useAntigravityAccount = create<AntigravityAccountState & Antigravit
   switchToAccount: async (email: string): Promise<void> => {
     try {
       // 调用后端切换用户命令
-      await AccountCommands.switchToAccount(email);
+      await AccountCommands.switchToAntigravityAccount(email);
     } catch (error) {
       logger.error('切换用户失败', {
         module: 'UserManagement',

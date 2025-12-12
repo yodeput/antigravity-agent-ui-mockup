@@ -3,8 +3,7 @@ import BusinessUserDetail from "@/components/business/AccountDetailModal.tsx";
 import {useAntigravityAccount, useCurrentAntigravityAccount} from "@/modules/use-antigravity-account.ts";
 import {useAccountAdditionData, UserTier} from "@/modules/use-account-addition-data.ts";
 import {useTrayMenu} from "@/hooks/use-tray-menu.ts";
-
-import BusinessConfirmDialog from "@/components/business/ConfirmDialog.tsx";
+import {Modal} from 'antd';
 import toast from 'react-hot-toast';
 import {maskEmail} from "@/lib/string-masking.ts";
 import {useAppGlobalLoader} from "@/modules/use-app-global-loader.ts";
@@ -53,10 +52,7 @@ export function AppContent() {
     })
   }, [antigravityAccount.accounts]);
 
-  const [isClearDialogOpen, setIsClearDialogOpen] = useState(false);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [accountToDelete, setAccountToDelete] = useState<string | null>(null);
-
+  
   // 用户详情处理
   const handleUserClick = (account: AccountSessionListAccountItem) => {
     setSelectedUser(account);
@@ -69,17 +65,23 @@ export function AppContent() {
   };
 
   const handleDeleteBackup = (user: AccountSessionListAccountItem) => {
-    setAccountToDelete(user.email);
-    setDeleteDialogOpen(true);
+    Modal.confirm({
+      centered: true,
+      title: '确认删除账户',
+      content: <p className={"wrap-break-word whitespace-pre-line"}>
+        {`确定要删除账户 "${user.email}" 吗？此操作无法撤销。`}
+      </p>,
+      onOk() {
+        return confirmDeleteAccount(user.email);
+      },
+      onCancel() {
+      },
+    });
   };
 
-  const confirmDeleteAccount = async () => {
-    if (!accountToDelete) return;
-
-    await antigravityAccount.delete(accountToDelete);
-    toast.success(`账户 "${accountToDelete}" 删除成功`);
-    setDeleteDialogOpen(false);
-    setAccountToDelete(null);
+  const confirmDeleteAccount = async (email: string) => {
+    await antigravityAccount.delete(email);
+    toast.success(`账户 "${email}" 删除成功`);
   };
 
   const handleSwitchAccount = async (user: AccountSessionListAccountItem) => {
@@ -96,16 +98,28 @@ export function AppContent() {
       toast.error('当前没有用户备份可清空');
       return;
     }
-    setIsClearDialogOpen(true);
+
+    Modal.confirm({
+      centered: true,
+      title: '确认清空所有备份',
+      content: <p className={"wrap-break-word whitespace-pre-line"}>
+        {`此操作将永久删除所有 ${antigravityAccount.accounts.length} 个账户，且无法恢复。请确认您要继续此操作吗？`}
+      </p>,
+      onOk() {
+        return confirmClearAllBackups();
+      },
+      onCancel() {
+      },
+    });
   };
 
   const confirmClearAllBackups = async () => {
     try {
       await antigravityAccount.clearAllAccounts();
       toast.success('清空所有备份成功');
-      setIsClearDialogOpen(false);
     } catch (error) {
       toast.error(`清空备份失败: ${error}`);
+      throw error;
     }
   };
 
@@ -119,7 +133,8 @@ export function AppContent() {
       nickName: account.context.plan_name,
       userAvatar: accountAdditionDatum?.userAvatar ?? "",
       apiKey: account.auth.access_token,
-      tier: account.context.plan.slug as UserTier,
+      // 似乎在某些情况下 plan 可能为 null，这里添加 null 检查
+      tier: account.context.plan?.slug as UserTier,
     }
   })
 
@@ -181,32 +196,6 @@ export function AppContent() {
           currentUserEmail={currentAntigravityAccount?.context.email}
         />
       </section>
-
-      {/* 清空所有备份确认对话框 */}
-      <BusinessConfirmDialog
-        isOpen={isClearDialogOpen}
-        onOpenChange={setIsClearDialogOpen}
-        title="确认清空所有备份"
-        description={`此操作将永久删除所有 ${antigravityAccount.accounts.length} 个账户，且无法恢复。请确认您要继续此操作吗？`}
-        onConfirm={confirmClearAllBackups}
-        onCancel={() => setIsClearDialogOpen(false)}
-        variant="destructive"
-        isLoading={false}
-        confirmText="确认删除"
-      />
-
-      {/* 单个删除确认对话框 */}
-      <BusinessConfirmDialog
-        isOpen={deleteDialogOpen}
-        onOpenChange={setDeleteDialogOpen}
-        title="确认删除账户"
-        description={`确定要删除账户 "${accountToDelete}" 吗？此操作无法撤销。`}
-        onConfirm={confirmDeleteAccount}
-        onCancel={() => setDeleteDialogOpen(false)}
-        variant="destructive"
-        isLoading={false}
-        confirmText="确认删除"
-      />
 
       <BusinessUserDetail
         isOpen={isUserDetailOpen}

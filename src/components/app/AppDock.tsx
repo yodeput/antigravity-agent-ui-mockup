@@ -1,6 +1,5 @@
 import React, {useCallback, useState} from 'react';
 import {ArrowBigDownDash, ArrowBigUpDash, Settings, UserRoundPlus} from 'lucide-react';
-import BusinessConfirmDialog from '../business/ConfirmDialog.tsx';
 import {useAntigravityAccount} from '@/modules/use-antigravity-account.ts';
 import toast from 'react-hot-toast';
 import {useImportExportAccount} from "@/modules/use-import-export-accounts.ts";
@@ -51,20 +50,6 @@ const AppDock = () => {
 
   // 计算全局加载状态
   const isAnyLoading = signInNewAntigravityAccount.processing || isImporting || isExporting;
-
-  // 确认对话框状态（用于"登录新账户"操作）
-  const [confirmDialog, setConfirmDialog] = useState<{
-    isOpen: boolean;
-    title: string;
-    description: string;
-    onConfirm: () => void;
-  }>({
-    isOpen: false,
-    title: '',
-    description: '',
-    onConfirm: () => { }
-  });
-
   
   // 处理登录新账户按钮点击
   const handleBackupAndRestartClick = () => {
@@ -82,11 +67,9 @@ const AppDock = () => {
 注意：系统将自动启动 Antigravity，请确保已保存所有重要工作`}
       </p>,
       onOk() {
-        setConfirmDialog(prev => ({...prev, isOpen: false}));
         signInNewAntigravityAccount.run();
       },
       onCancel() {
-        setConfirmDialog(prev => ({...prev, isOpen: false}));
       },
     });
   };
@@ -124,22 +107,6 @@ const AppDock = () => {
           </DockIcon>
         </Dock>
       </div>
-
-      {/* 确认对话框 */}
-      <BusinessConfirmDialog
-        isOpen={confirmDialog.isOpen}
-        onOpenChange={(open) => {
-          if (!open) {
-            setConfirmDialog(prev => ({ ...prev, isOpen: false }));
-          }
-        }}
-        title={confirmDialog.title}
-        description={confirmDialog.description}
-        onConfirm={confirmDialog.onConfirm}
-        onCancel={() => {
-          setConfirmDialog(prev => ({ ...prev, isOpen: false }));
-        }}
-      />
 
       <ImportPasswordDialog
         isOpen={importDialogIsOpen}

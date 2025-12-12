@@ -131,7 +131,7 @@ const BusinessSettingsDialog: React.FC<BusinessSettingsDialogProps> = ({
       if (result && typeof result === 'string') {
         const valid = await PlatformCommands.validateExecutable(result);
         if (valid) {
-          await PlatformCommands.saveExecutable(result);
+          await PlatformCommands.saveAntigravityExecutable(result);
           setExecPath(result);
         } else {
         }

@@ -7,6 +7,13 @@
     @apply h-screen w-screen flex flex-1 flex-col
 }
 
+/* 隐藏默认的 eye */
+input[type=password]::-ms-reveal,
+input[type=password]::-ms-clear
+{
+    display: none;
+}
+
 @theme inline {
 
     --radius-sm: calc(var(--radius) - 4px);

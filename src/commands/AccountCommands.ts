@@ -25,7 +25,7 @@ export class AccountCommands {
    * 备份当前登录的账户
    * @returns 备份结果消息
    */
-  static async backupAntigravityCurrentAccount(): Promise<string> {
+  static async saveAntigravityCurrentAccount(): Promise<string> {
     return invoke('save_antigravity_current_account');
   }
 
@@ -34,7 +34,7 @@ export class AccountCommands {
    * @param accountName 账户名（邮箱）
    * @returns 切换结果消息
    */
-  static async switchToAccount(accountName: string): Promise<string> {
+  static async switchToAntigravityAccount(accountName: string): Promise<string> {
     return invoke('switch_to_antigravity_account', { accountName: accountName });
   }
 
