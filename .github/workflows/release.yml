@@ -20,6 +20,9 @@ jobs:
   # Step 1: 先创建 Release（参考 autobuild.yml 的 prepare-release）
   prepare-release:
     runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
+      version: ${{ steps.version.outputs.version }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -32,7 +35,7 @@ jobs:
             TAG="${{ github.ref_name }}"
             VERSION="${TAG#v}"
           else
-            VERSION=$(node -p "require('./package.json').version")
+            VERSION=$(node -p "require('./src-tauri/tauri.conf.json').version")
             TAG="v$VERSION"
           fi
           echo "tag=$TAG" >> $GITHUB_OUTPUT
@@ -181,8 +184,8 @@ jobs:
 
       - name: Build with Tauri (Release)
         env:
-          TAURI_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
           RUST_LOG: debug
         shell: bash
         run: |
@@ -197,17 +200,37 @@ jobs:
           PLATFORM="${{ matrix.platform }}"
           ARCH="${{ matrix.arch }}"
 
+          rename_with_sig() {
+            local file="$1"
+            local new_name="$2"
+            if [ "$file" != "$new_name" ]; then
+              mv "$file" "$new_name" 2>/dev/null || true
+              if [ -f "${file}.sig" ]; then
+                mv "${file}.sig" "${new_name}.sig" 2>/dev/null || true
+              fi
+            fi
+          }
+
           # macOS 处理
           if [ "$PLATFORM" = "macos-latest" ]; then
             if [ -d "$BUNDLE_DIR/dmg" ]; then
               cd "$BUNDLE_DIR/dmg/"
               for file in *.dmg; do
                 if [ -f "$file" ]; then
-                  new_name=$(echo "$file" | sed -E "s/Antigravity Agent_[0-9]+\.[0-9]+\.[0-9]+/Antigravity Agent_$VERSION/")
-                  new_name="${new_name%.dmg}_${ARCH}.dmg"
-                  if [ "$file" != "$new_name" ]; then
-                    mv "$file" "$new_name"
-                  fi
+                  # Normalize to a deterministic name to avoid arch/version duplication
+                  new_name="Antigravity Agent_${VERSION}_${ARCH}.dmg"
+                  rename_with_sig "$file" "$new_name"
+                fi
+              done
+            fi
+
+            if [ -d "$BUNDLE_DIR/macos" ]; then
+              cd "$BUNDLE_DIR/macos/"
+              for file in *.app.tar.gz; do
+                if [ -f "$file" ]; then
+                  # Deterministic name ensures both macOS arches are preserved
+                  new_name="Antigravity Agent_${VERSION}_${ARCH}.app.tar.gz"
+                  rename_with_sig "$file" "$new_name"
                 fi
               done
             fi
@@ -217,19 +240,19 @@ jobs:
           if [ "$PLATFORM" = "windows-latest" ]; then
             if [ -d "$BUNDLE_DIR/msi" ]; then
               cd "$BUNDLE_DIR/msi/"
-              for file in *.msi; do
+              for file in *.msi *.msi.zip; do
                 if [ -f "$file" ]; then
                   new_name=$(echo "$file" | sed -E "s/Antigravity Agent_[0-9]+\.[0-9]+\.[0-9]+/Antigravity Agent_$VERSION/")
-                  mv "$file" "$new_name" 2>/dev/null || true
+                  rename_with_sig "$file" "$new_name"
                 fi
               done
             fi
             if [ -d "$BUNDLE_DIR/nsis" ]; then
               cd "$BUNDLE_DIR/nsis/"
-              for file in *.exe; do
+              for file in *.exe *.nsis.zip; do
                 if [ -f "$file" ]; then
                   new_name=$(echo "$file" | sed -E "s/Antigravity Agent_[0-9]+\.[0-9]+\.[0-9]+/Antigravity Agent_$VERSION/")
-                  mv "$file" "$new_name" 2>/dev/null || true
+                  rename_with_sig "$file" "$new_name"
                 fi
               done
             fi
@@ -239,10 +262,10 @@ jobs:
           if [ "$PLATFORM" = "ubuntu-latest" ]; then
             if [ -d "$BUNDLE_DIR/appimage" ]; then
               cd "$BUNDLE_DIR/appimage/"
-              for file in *.AppImage; do
+              for file in *.AppImage *.AppImage.tar.gz; do
                 if [ -f "$file" ]; then
                   new_name=$(echo "$file" | sed -E "s/Antigravity Agent_[0-9]+\.[0-9]+\.[0-9]+_amd64/antigravity-agent_$VERSION\_amd64/")
-                  mv "$file" "${new_name%.AppImage}.AppImage" 2>/dev/null || true
+                  rename_with_sig "$file" "$new_name"
                 fi
               done
             fi
@@ -251,7 +274,7 @@ jobs:
               for file in *.deb; do
                 if [ -f "$file" ]; then
                   new_name=$(echo "$file" | sed -E "s/Antigravity Agent_[0-9]+\.[0-9]+\.[0-9]+_amd64/antigravity-agent_$VERSION\_amd64/")
-                  mv "$file" "$new_name.deb" 2>/dev/null || true
+                  rename_with_sig "$file" "$new_name.deb"
                 fi
               done
             fi
@@ -283,7 +306,7 @@ jobs:
 
           if [ -d "$BUNDLE_DIR" ]; then
             # 完全参考 autobuild.yml 的文件过滤
-            find "$BUNDLE_DIR" -type f \( -name "*.msi" -o -name "*.exe" -o -name "*.zip" -o -name "*.AppImage" -o -name "*.deb" -o -name "*.sig" -o -name "*.dmg" \) | while read file; do
+            find "$BUNDLE_DIR" -type f \( -name "*.msi" -o -name "*.exe" -o -name "*.zip" -o -name "*.AppImage" -o -name "*.deb" -o -name "*.sig" -o -name "*.dmg" -o -name "*.tar.gz" \) | while read file; do
               echo "Uploading: $file"
               gh release upload ${{ steps.version.outputs.tag }} "$file" --clobber --repo "${{ github.repository }}"
             done
@@ -295,20 +318,8 @@ jobs:
     runs-on: ubuntu-latest
     if: success()
     steps:
-      - name: Extract version for updater
-        id: updater-version
-        shell: bash
-        run: |
-          if [[ "${{ github.ref_type }}" == "tag" ]]; then
-            TAG="${{ github.ref_name }}"
-          else
-            VERSION=$(node -p "require('./package.json').version")
-            TAG="v$VERSION"
-          fi
-          echo "tag=$TAG" >> $GITHUB_OUTPUT
-
       - name: Generate updater configuration
         uses: peter-evans/repository-dispatch@v2
         with:
           event-type: generate-updater
-          client-payload: '{"tag": "${{ steps.updater-version.outputs.tag }}"}'
+          client-payload: '{"tag": "${{ needs.prepare-release.outputs.tag }}"}'

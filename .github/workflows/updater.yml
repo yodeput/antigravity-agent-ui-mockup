@@ -63,7 +63,7 @@ jobs:
           echo "📦 Fetching release information for $TAG..."
           
           # Get release details with assets
-          RELEASE_DATA=$(gh release view "$TAG" --json body,publishedAt,assets --jq '.')
+          RELEASE_DATA=$(gh release view "$TAG" --repo "$REPO" --json body,publishedAt,assets --jq '.')
           echo "$RELEASE_DATA" > release.json
           
           # Extract release body and published date
@@ -74,8 +74,12 @@ jobs:
             PUB_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
           fi
           
-          echo "release-body=$BODY" >> $GITHUB_ENV
-          echo "pub-date=$PUB_DATE" >> $GITHUB_ENV
+          {
+            echo "release_body<<EOF"
+            printf '%s\n' "$BODY"
+            echo "EOF"
+            echo "pub_date=$PUB_DATE"
+          } >> "$GITHUB_ENV"
           
           # Show assets count
           ASSET_COUNT=$(echo "$RELEASE_DATA" | jq '.assets | length')
@@ -114,25 +118,26 @@ jobs:
               
               # Check for signature file
               local sig_file="${file}.sig"
-              if [ -f "$sig_file" ]; then
-                echo "${platform}-${arch}-sig=$sig_file" >> $GITHUB_ENV
-                echo "   └─ Signature: $(basename $sig_file)"
+              if [ ! -f "$sig_file" ]; then
+                echo "❌ Missing signature for $platform-$arch: $(basename $file)"
+                exit 1
               fi
+              echo "${platform}-${arch}-sig=$sig_file" >> $GITHUB_ENV
+              echo "   └─ Signature: $(basename $sig_file)"
               return 0
             fi
             return 1
           }
           
-          # Windows
-          detect_file "*x64-setup*.zip" "windows" "x86_64" "nsis"
+          # Windows updater bundle (NSIS installer)
+          detect_file "*setup*.exe" "windows" "x86_64" "nsis" || detect_file "*.msi" "windows" "x86_64" "msi"
           
-          # macOS
-          detect_file "*aarch64*.dmg" "darwin" "aarch64" "dmg"
-          detect_file "*_x86_64*.dmg" "darwin" "x86_64" "dmg"
+          # macOS updater bundle (app tarball)
+          detect_file "*aarch64*.app.tar.gz" "darwin" "aarch64" "app"
+          detect_file "*x86_64*.app.tar.gz" "darwin" "x86_64" "app"
           
-          # Linux
-          detect_file "*amd64*.AppImage" "linux" "x86_64" "appimage"
-          detect_file "*amd64*.deb" "linux" "x86_64" "deb"
+          # Linux updater bundle (prefer tarball if present)
+          detect_file "*amd64*.AppImage.tar.gz" "linux" "x86_64" "appimage" || detect_file "*amd64*.AppImage" "linux" "x86_64" "appimage"
           
           echo ""
           echo "=== Detection Summary ==="
@@ -164,6 +169,11 @@ jobs:
                 SIG_CONTENT=$(cat "$sig_path")
               fi
               
+              if [ -z "$SIG_CONTENT" ]; then
+                echo "❌ Empty signature for $platform_id"
+                exit 1
+              fi
+               
               # URL encode spaces
               FILE_URL="$BASE_URL/$(basename "$file_path" | sed 's/ /%20/g')"
               
@@ -185,8 +195,8 @@ jobs:
           # Generate final JSON
           jq -n \
             --arg version "$TAG" \
-            --arg notes "$release-body" \
-            --arg pub_date "$pub-date" \
+            --arg notes "$release_body" \
+            --arg pub_date "$pub_date" \
             --argjson platforms "$PLATFORMS" \
             '{
               version: $version,
