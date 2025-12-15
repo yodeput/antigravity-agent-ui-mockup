@@ -146,6 +146,12 @@ export function AccountSessionListCard(props: UserSessionCardProps) {
       }}
     >
 
+      {props.isCurrentUser && (
+        <div className="absolute top-1 right-1 px-2 py-0.5 bg-blue-500 text-white text-[10px] font-bold rounded-full shadow-sm leading-tight z-10">
+          当前
+        </div>
+      )}
+
       {/* --- 特效层 A: 聚光灯 (鼠标跟随) --- */}
       <motion.div
         className="pointer-events-none absolute -inset-px rounded-2xl opacity-0 transition duration-500 group-hover:opacity-100 z-0"
@@ -205,12 +211,6 @@ export function AccountSessionListCard(props: UserSessionCardProps) {
               <p className="text-sm text-slate-500 font-medium line-clamp-2 break-all">{props.email}</p>
             </Tooltip>
           </div>
-
-          {props.isCurrentUser && (
-            <div className="absolute top-0 right-0 px-2 py-0.5 bg-blue-500 text-white text-[10px] font-bold rounded-full shadow-sm leading-tight z-10">
-              当前
-            </div>
-          )}
         </motion.header>
 
         {/* 进度条区域 */}
