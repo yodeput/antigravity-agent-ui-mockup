@@ -7,8 +7,14 @@ import {UserTier} from "@/modules/use-account-addition-data.ts";
 import {useAppSettings} from "@/modules/use-app-settings.ts";
 
 export interface AccountSessionListAccountItem {
-  geminiQuota: number;
-  claudeQuota: number;
+  geminiProQuote: number | -1
+  geminiProQuoteRestIn: string
+  geminiFlashQuote: number | -1
+  geminiFlashQuoteRestIn: string
+  geminiImageQuote: number | -1
+  geminiImageQuoteRestIn: string
+  claudeQuote: number | -1
+  claudeQuoteRestIn: string
   email: string;
   nickName: string;
   userAvatar: string;
@@ -89,8 +95,14 @@ export function AccountSessionList({
             className="z-10" // 确保在背景之上
           >
             <AccountSessionListCard
-              geminiQuota={account.geminiQuota}
-              claudeQuota={account.claudeQuota}
+              geminiProQuote={account.geminiProQuote}
+              geminiProQuoteRestIn={account.geminiProQuoteRestIn}
+              geminiFlashQuote={account.geminiFlashQuote}
+              geminiFlashQuoteRestIn={account.geminiFlashQuoteRestIn}
+              geminiImageQuote={account.geminiImageQuote}
+              geminiImageQuoteRestIn={account.geminiImageQuoteRestIn}
+              claudeQuote={account.claudeQuote}
+              claudeQuoteRestIn={account.claudeQuoteRestIn}
               userAvatar={account.userAvatar}
               tier={account.tier}
               isCurrentUser={currentUserEmail === account.email}
@@ -118,7 +130,7 @@ export function AccountSessionList({
             </svg>
           </div>
           <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
-            暂无用户备份
+            暂无账户信息
           </h3>
           <p className="text-sm text-gray-600 dark:text-gray-400 max-w-md leading-relaxed">
             在 Antigravity 登录账户后，本程序会自动读取。

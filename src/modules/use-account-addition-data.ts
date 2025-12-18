@@ -18,8 +18,14 @@ type Actions = {
 export type UserTier = 'free-tier' | 'g1-pro-tier' | 'g1-ultra-tier';
 
 export interface AccountAdditionData {
-  geminiQuote: number
+  geminiProQuote: number
+  geminiProQuoteRestIn: string
+  geminiFlashQuote: number
+  geminiFlashQuoteRestIn: string
+  geminiImageQuote: number
+  geminiImageQuoteRestIn: string
   claudeQuote: number
+  claudeQuoteRestIn: string
   userAvatar: string
   userId: string
 }
@@ -71,8 +77,14 @@ export const useAccountAdditionData = create<State & Actions>((setState, getStat
       data: {
         ...getState().data,
         [antigravityAccount.context.email]: {
-          geminiQuote: modelsResponse.models["gemini-3-pro-high"].quotaInfo.remainingFraction,
+          geminiProQuote: modelsResponse.models["gemini-3-pro-high"].quotaInfo.remainingFraction,
+          geminiProQuoteRestIn: modelsResponse.models["gemini-3-pro-high"].quotaInfo.resetTime,
+          geminiFlashQuote: modelsResponse.models["gemini-3-flash"].quotaInfo.remainingFraction,
+          geminiFlashQuoteRestIn: modelsResponse.models["gemini-3-flash"].quotaInfo.resetTime,
+          geminiImageQuote: modelsResponse.models["gemini-3-pro-image"].quotaInfo.remainingFraction,
+          geminiImageQuoteRestIn: modelsResponse.models["gemini-3-pro-image"].quotaInfo.resetTime,
           claudeQuote: modelsResponse.models["claude-opus-4-5-thinking"].quotaInfo.remainingFraction,
+          claudeQuoteRestIn: modelsResponse.models["claude-opus-4-5-thinking"].quotaInfo.resetTime,
           userAvatar: userInfoResponse.picture,
           userId: userInfoResponse.id,
         }

@@ -154,8 +154,14 @@ export function AppContent() {
     const accountAdditionDatum = accountAdditionData.data[account.context.email]
 
     return {
-      geminiQuota: accountAdditionDatum?.geminiQuote ?? -1,
-      claudeQuota: accountAdditionDatum?.claudeQuote ?? -1,
+      geminiProQuote: accountAdditionDatum.geminiProQuote ?? -1,
+      geminiProQuoteRestIn: accountAdditionDatum.geminiProQuoteRestIn,
+      geminiFlashQuote: accountAdditionDatum.geminiFlashQuote ?? -1,
+      geminiFlashQuoteRestIn: accountAdditionDatum.geminiFlashQuoteRestIn,
+      geminiImageQuote: accountAdditionDatum.geminiImageQuote ?? -1,
+      geminiImageQuoteRestIn: accountAdditionDatum.geminiImageQuoteRestIn,
+      claudeQuote: accountAdditionDatum.claudeQuote ?? -1,
+      claudeQuoteRestIn: accountAdditionDatum.claudeQuoteRestIn,
       email: account.context.email,
       nickName: account.context.plan_name,
       userAvatar: accountAdditionDatum?.userAvatar ?? "",
@@ -189,11 +195,19 @@ export function AppContent() {
         case 'name':
           return byName;
         case 'claude': {
-          const diff = (b.claudeQuota ?? -1) - (a.claudeQuota ?? -1);
+          const diff = (b.claudeQuote ?? -1) - (a.claudeQuote ?? -1);
           return diff !== 0 ? diff : byName;
         }
-        case 'gemini': {
-          const diff = (b.geminiQuota ?? -1) - (a.geminiQuota ?? -1);
+        case 'gemini-pro': {
+          const diff = (b.geminiProQuote ?? -1) - (a.geminiProQuote ?? -1);
+          return diff !== 0 ? diff : byName;
+        }
+        case 'gemini-flash': {
+          const diff = (b.geminiFlashQuote ?? -1) - (a.geminiFlashQuote ?? -1);
+          return diff !== 0 ? diff : byName;
+        }
+        case 'gemini-image': {
+          const diff = (b.geminiImageQuote ?? -1) - (a.geminiImageQuote ?? -1);
           return diff !== 0 ? diff : byName;
         }
         case 'tier': {

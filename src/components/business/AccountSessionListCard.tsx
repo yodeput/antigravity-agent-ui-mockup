@@ -11,6 +11,7 @@ import { Avatar } from "@/components/ui/avatar.tsx";
 import { ArrowLeftRight, Crown, Gem, Trash2 } from 'lucide-react';
 import { BaseButton } from "@/components/base-ui/BaseButton.tsx";
 import {Variants} from "motion/react";
+import {LiquidProgressBar} from "@/components/ui/LiquidProgressBar.tsx";
 
 // ==========================================
 // 类型定义
@@ -22,8 +23,14 @@ interface UserSessionCardProps {
   userAvatar: string;
   email: string;
   tier: UserTier;
-  geminiQuota: number | -1;
-  claudeQuota: number | -1;
+  geminiProQuote: number | -1
+  geminiProQuoteRestIn: string
+  geminiFlashQuote: number | -1
+  geminiFlashQuoteRestIn: string
+  geminiImageQuote: number | -1
+  geminiImageQuoteRestIn: string
+  claudeQuote: number | -1
+  claudeQuoteRestIn: string
   isCurrentUser: boolean;
   onSelect: () => void
   onSwitch: () => void
@@ -214,35 +221,51 @@ export function AccountSessionListCard(props: UserSessionCardProps) {
         </motion.header>
 
         {/* 进度条区域 */}
-        <motion.div className="space-y-3" variants={childVariants}>
-          {props.geminiQuota === -1 ? (
+        <motion.div className="space-y-2" variants={childVariants}>
+          {props.geminiProQuote === -1 ? (
             <>
-              <UsageItem
-                label="Gemini"
+              <LiquidProgressBar
+                type="gemini-pro"
                 percentage={-1}
-                color="bg-blue-400"
-                trackColor={tier === 'g1-ultra-tier' ? "bg-blue-100/40" : "bg-blue-50"}
+                resetIn={props.geminiProQuoteRestIn}
               />
-              <UsageItem
-                label="Claude"
+              <LiquidProgressBar
+                type="claude"
                 percentage={-1}
-                color="bg-violet-400"
-                trackColor={tier === 'g1-ultra-tier' ? "bg-violet-100/40" : "bg-violet-50"}
+                resetIn={props.claudeQuoteRestIn}
+              />
+              <LiquidProgressBar
+                type="gemini-flash"
+                percentage={-1}
+                resetIn={props.geminiFlashQuoteRestIn}
+              />
+              <LiquidProgressBar
+                type="gemini-image"
+                percentage={-1}
+                resetIn={props.geminiImageQuoteRestIn}
               />
             </>
           ) : (
             <>
-              <UsageItem
-                label="Gemini"
-                percentage={props.geminiQuota}
-                color="bg-blue-400"
-                trackColor={tier === 'g1-ultra-tier' ? "bg-blue-100/40" : "bg-blue-50"}
+              <LiquidProgressBar
+                type="gemini-pro"
+                percentage={props.geminiProQuote}
+                resetIn={props.geminiProQuoteRestIn}
               />
-              <UsageItem
-                label="Claude"
-                percentage={props.claudeQuota}
-                color="bg-violet-400"
-                trackColor={tier === 'g1-ultra-tier' ? "bg-violet-100/40" : "bg-violet-50"}
+              <LiquidProgressBar
+                type="claude"
+                percentage={props.claudeQuote}
+                resetIn={props.claudeQuoteRestIn}
+              />
+              <LiquidProgressBar
+                type="gemini-flash"
+                percentage={props.geminiFlashQuote}
+                resetIn={props.geminiFlashQuoteRestIn}
+              />
+              <LiquidProgressBar
+                type="gemini-image"
+                percentage={props.geminiImageQuote}
+                resetIn={props.geminiImageQuoteRestIn}
               />
             </>
           )}
