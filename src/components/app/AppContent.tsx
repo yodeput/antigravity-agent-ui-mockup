@@ -154,14 +154,14 @@ export function AppContent() {
     const accountAdditionDatum = accountAdditionData.data[account.context.email]
 
     return {
-      geminiProQuote: accountAdditionDatum.geminiProQuote ?? -1,
-      geminiProQuoteRestIn: accountAdditionDatum.geminiProQuoteRestIn,
-      geminiFlashQuote: accountAdditionDatum.geminiFlashQuote ?? -1,
-      geminiFlashQuoteRestIn: accountAdditionDatum.geminiFlashQuoteRestIn,
-      geminiImageQuote: accountAdditionDatum.geminiImageQuote ?? -1,
-      geminiImageQuoteRestIn: accountAdditionDatum.geminiImageQuoteRestIn,
-      claudeQuote: accountAdditionDatum.claudeQuote ?? -1,
-      claudeQuoteRestIn: accountAdditionDatum.claudeQuoteRestIn,
+      geminiProQuote: accountAdditionDatum?.geminiProQuote ?? -1,
+      geminiProQuoteRestIn: accountAdditionDatum?.geminiProQuoteRestIn,
+      geminiFlashQuote: accountAdditionDatum?.geminiFlashQuote ?? -1,
+      geminiFlashQuoteRestIn: accountAdditionDatum?.geminiFlashQuoteRestIn,
+      geminiImageQuote: accountAdditionDatum?.geminiImageQuote ?? -1,
+      geminiImageQuoteRestIn: accountAdditionDatum?.geminiImageQuoteRestIn,
+      claudeQuote: accountAdditionDatum?.claudeQuote ?? -1,
+      claudeQuoteRestIn: accountAdditionDatum?.claudeQuoteRestIn,
       email: account.context.email,
       nickName: account.context.plan_name,
       userAvatar: accountAdditionDatum?.userAvatar ?? "",
