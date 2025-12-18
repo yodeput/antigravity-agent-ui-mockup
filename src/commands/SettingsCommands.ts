@@ -34,6 +34,15 @@ export class SettingsCommands {
   }
 
   /**
+   * 保存 Debug Mode 状态
+   * @param enabled 是否启用
+   * @returns 保存后的状态
+   */
+  static async saveDebugModeState(enabled: boolean): Promise<boolean> {
+    return invoke('save_debug_mode_state', { enabled });
+  }
+
+  /**
    * 获取所有应用设置
    * @returns 应用设置对象
    */

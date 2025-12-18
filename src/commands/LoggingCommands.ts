@@ -14,6 +14,20 @@ export class LoggingCommands {
   }
 
   /**
+   * 打开日志目录（在系统文件管理器中打开）
+   */
+  static async openLogDirectory(): Promise<void> {
+    return invoke('open_log_directory');
+  }
+
+  /**
+   * 获取日志目录路径
+   */
+  static async getLogDirectoryPath(): Promise<string> {
+    return invoke('get_log_directory_path');
+  }
+
+  /**
    * 写入文本文件
    * @param path 文件路径
    * @param content 文件内容

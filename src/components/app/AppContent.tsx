@@ -9,6 +9,7 @@ import {maskEmail} from "@/lib/string-masking.ts";
 import {useAppGlobalLoader} from "@/modules/use-app-global-loader.ts";
 import {AccountSessionList, AccountSessionListAccountItem} from "@/components/business/AccountSessionList.tsx";
 import AccountsListToolbar, {type ListToolbarValue} from "@/components/business/AccountsListToolbar.tsx";
+import {logger} from "@/lib/logger.ts";
 
 const tierRank: Record<UserTier, number> = {
   'g1-ultra-tier': 0,
@@ -54,15 +55,25 @@ export function AppContent() {
       clearInterval(fetchAccountAdditionDataTimer.current)
     }
 
-    fetchAccountAdditionDataTimer.current = setInterval(() => {
-      antigravityAccount.accounts.forEach(user => {
-        accountAdditionData.update(user)
+    const task = () => {
+      antigravityAccount.accounts.forEach(async (user) => {
+        try {
+          await accountAdditionData.update(user)
+        } catch (e) {
+          logger.error('获取用户额外数据失败', {
+            module: 'AppContent',
+            email: user.context.email,
+            error: e instanceof Error ? e.message : String(e)
+          })
+        }
       })
+    }
+
+    fetchAccountAdditionDataTimer.current = setInterval(() => {
+      task()
     }, 1000 * 30)
 
-    antigravityAccount.accounts.forEach(user => {
-      accountAdditionData.update(user)
-    })
+    task()
 
     return () => {
       clearInterval(fetchAccountAdditionDataTimer.current)
@@ -143,8 +154,14 @@ export function AppContent() {
     const accountAdditionDatum = accountAdditionData.data[account.context.email]
 
     return {
-      geminiQuota: accountAdditionDatum?.geminiQuote ?? -1,
-      claudeQuota: accountAdditionDatum?.claudeQuote ?? -1,
+      geminiProQuote: accountAdditionDatum?.geminiProQuote ?? -1,
+      geminiProQuoteRestIn: accountAdditionDatum?.geminiProQuoteRestIn,
+      geminiFlashQuote: accountAdditionDatum?.geminiFlashQuote ?? -1,
+      geminiFlashQuoteRestIn: accountAdditionDatum?.geminiFlashQuoteRestIn,
+      geminiImageQuote: accountAdditionDatum?.geminiImageQuote ?? -1,
+      geminiImageQuoteRestIn: accountAdditionDatum?.geminiImageQuoteRestIn,
+      claudeQuote: accountAdditionDatum?.claudeQuote ?? -1,
+      claudeQuoteRestIn: accountAdditionDatum?.claudeQuoteRestIn,
       email: account.context.email,
       nickName: account.context.plan_name,
       userAvatar: accountAdditionDatum?.userAvatar ?? "",
@@ -178,11 +195,19 @@ export function AppContent() {
         case 'name':
           return byName;
         case 'claude': {
-          const diff = (b.claudeQuota ?? -1) - (a.claudeQuota ?? -1);
+          const diff = (b.claudeQuote ?? -1) - (a.claudeQuote ?? -1);
           return diff !== 0 ? diff : byName;
         }
-        case 'gemini': {
-          const diff = (b.geminiQuota ?? -1) - (a.geminiQuota ?? -1);
+        case 'gemini-pro': {
+          const diff = (b.geminiProQuote ?? -1) - (a.geminiProQuote ?? -1);
+          return diff !== 0 ? diff : byName;
+        }
+        case 'gemini-flash': {
+          const diff = (b.geminiFlashQuote ?? -1) - (a.geminiFlashQuote ?? -1);
+          return diff !== 0 ? diff : byName;
+        }
+        case 'gemini-image': {
+          const diff = (b.geminiImageQuote ?? -1) - (a.geminiImageQuote ?? -1);
           return diff !== 0 ? diff : byName;
         }
         case 'tier': {

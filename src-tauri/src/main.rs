@@ -3,6 +3,7 @@
 
 use std::fs;
 use tracing_appender::non_blocking::WorkerGuard;
+use tracing_subscriber::filter::LevelFilter;
 use tracing_subscriber::{prelude::*, EnvFilter};
 
 // Modules
@@ -31,9 +32,18 @@ use crate::commands::*;
 
 /// 初始化双层日志系统（控制台 + 文件）
 fn init_tracing() -> WorkerGuard {
+    let app_settings_path = crate::directories::get_app_settings_file();
+    let settings = crate::app_settings::load_settings_from_disk(&app_settings_path);
+
     // 日志过滤器：默认 info，降低 h2/hyper 噪音（可被 RUST_LOG 覆盖）
+    // Debug Mode 开启时：仅放开应用相关的 debug（以及 frontend），避免依赖库（如 reqwest）刷屏。
+    let default_filter = if settings.debug_mode {
+        "info,antigravity_agent=debug,frontend=debug,app=debug,window=debug,account=debug,restore=debug,cleanup=debug,backup=debug,h2=warn,hyper=warn"
+    } else {
+        "info,h2=warn,hyper=warn"
+    };
     let env_filter = EnvFilter::try_from_default_env()
-        .unwrap_or_else(|_| EnvFilter::new("info,h2=warn,hyper=warn"));
+        .unwrap_or_else(|_| EnvFilter::new(default_filter));
 
     // 创建日志目录
     let log_dir = crate::directories::get_log_directory();
@@ -54,7 +64,8 @@ fn init_tracing() -> WorkerGuard {
                 .with_writer(std::io::stdout) // 控制台输出，不脱敏
                 .with_target(false)
                 .compact()
-                .with_ansi(true), // 控制台启用颜色
+                .with_ansi(true) // 控制台启用颜色
+                .with_filter(LevelFilter::INFO),
         )
         .with(
             tracing_subscriber::fmt::layer()
@@ -125,6 +136,7 @@ fn main() {
             save_system_tray_state,
             save_silent_start_state,
             save_private_mode_state,
+            save_debug_mode_state,
             get_all_settings,
             // 数据库监控命令
             is_database_monitoring_running,
@@ -134,6 +146,8 @@ fn main() {
             encrypt_config_data,
             write_text_file,
             write_frontend_log,
+            get_log_directory_path,
+            open_log_directory,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

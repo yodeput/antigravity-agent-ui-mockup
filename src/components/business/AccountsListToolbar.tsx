@@ -7,7 +7,7 @@ import {Select as AntSelect} from 'antd';
 import {LineShadowText} from "@/components/ui/line-shadow-text.tsx";
 import UpdateBadge from "@/components/business/UpdateBadge.tsx";
 
-export type ListSortKey = 'name' | 'claude' | 'gemini' | 'tier';
+export type ListSortKey = 'name' | 'claude' | 'gemini-pro' | 'gemini-flash' | 'gemini-image' | 'tier';
 export type ListToolbarValue = {
   query: string;
   sortKey: ListSortKey;
@@ -16,8 +16,10 @@ export type ListToolbarValue = {
 
 const defaultSortOptions: Array<{ value: ListSortKey; label: string }> = [
   { value: 'name', label: '用户名首字母' },
+  { value: 'gemini-pro', label: 'Gemini Pro 配额' },
   { value: 'claude', label: 'Claude 配额' },
-  { value: 'gemini', label: 'Gemini 配额' },
+  { value: 'gemini-flash', label: 'Gemini Flash 配额' },
+  { value: 'gemini-image', label: 'Gemini Image 配额' },
   { value: 'tier', label: '账户层次' },
 ];
 

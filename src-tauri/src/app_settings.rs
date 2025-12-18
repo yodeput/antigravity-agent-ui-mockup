@@ -12,6 +12,8 @@ pub struct AppSettings {
     pub system_tray_enabled: bool,
     /// 是否启用静默启动（启动时最小化到托盘或后台）
     pub silent_start_enabled: bool,
+    /// Debug 模式：记录 debug 级别日志（写入文件）
+    pub debug_mode: bool,
     /// 隐私模式：用户信息打码（邮箱/用户名）
     pub private_mode: bool,
 }
@@ -25,8 +27,20 @@ impl Default for AppSettings {
         Self {
             system_tray_enabled: false,
             silent_start_enabled: false,
+            debug_mode: false,
             private_mode: default_private_mode(),
         }
+    }
+}
+
+pub fn load_settings_from_disk(config_path: &PathBuf) -> AppSettings {
+    if config_path.exists() {
+        match fs::read_to_string(config_path) {
+            Ok(content) => serde_json::from_str(&content).unwrap_or_default(),
+            Err(_) => AppSettings::default(),
+        }
+    } else {
+        AppSettings::default()
     }
 }
 
@@ -63,14 +77,7 @@ impl AppSettingsManager {
         let config_path = crate::directories::get_app_settings_file();
 
         // 尝试加载现有设置
-        let mut settings = if config_path.exists() {
-            match fs::read_to_string(&config_path) {
-                Ok(content) => serde_json::from_str(&content).unwrap_or_default(),
-                Err(_) => AppSettings::default(),
-            }
-        } else {
-            AppSettings::default()
-        };
+        let mut settings = load_settings_from_disk(&config_path);
 
         // 验证并修正已存在的设置
         if settings.validate() {

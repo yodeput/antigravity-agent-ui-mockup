@@ -6,7 +6,7 @@
 
 > 开箱即用的 Antigravity 账户管理程序。
 
-<img src="screenshots/dashboard.png" alt="dashboard" width="600" />
+<img src="screenshots/dashboard.png" alt="dashboard" width="700" />
 
 Windows ✅️
 MacOS ✅️

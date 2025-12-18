@@ -1,9 +1,10 @@
 ﻿import type { Meta, StoryObj } from '@storybook/react';
-import {AccountSessionListCard} from "@/components/business/AccountSessionListCard.tsx";
-import {fn} from "storybook/test";
-import type { UserTier } from "@/modules/use-account-addition-data.ts";
-
-const tierOptions: UserTier[] = ['free-tier', 'g1-pro-tier', 'g1-ultra-tier'];
+import { AccountSessionListCard } from '@/components/business/AccountSessionListCard.tsx';
+import { fn } from 'storybook/test';
+import {
+  mockSessionItems,
+  tierOptions,
+} from '@/stories/mocks/accountSessions.ts';
 
 // 定义元数据
 const meta = {
@@ -24,13 +25,37 @@ const meta = {
   tags: ['autodocs'],
   // 配置控件类型
   argTypes: {
-    geminiQuota: {
+    geminiProQuote: {
       control: { type: 'range', min: -1, max: 1, step: 0.01 },
-      description: 'Gemini 使用配额 (0-1, 或 -1 代表未知)',
+      description: 'Gemini Pro 使用配额 (0-1, 或 -1 代表未知)',
     },
-    claudeQuota: {
+    geminiProQuoteRestIn: {
+      control: 'text',
+      description: 'Gemini Pro 重置时间',
+    },
+    geminiFlashQuote: {
+      control: { type: 'range', min: -1, max: 1, step: 0.01 },
+      description: 'Gemini Flash 使用配额 (0-1, 或 -1 代表未知)',
+    },
+    geminiFlashQuoteRestIn: {
+      control: 'text',
+      description: 'Gemini Flash 重置时间',
+    },
+    geminiImageQuote: {
+      control: { type: 'range', min: -1, max: 1, step: 0.01 },
+      description: 'Gemini Image 使用配额 (0-1, 或 -1 代表未知)',
+    },
+    geminiImageQuoteRestIn: {
+      control: 'text',
+      description: 'Gemini Image 重置时间',
+    },
+    claudeQuote: {
       control: { type: 'range', min: -1, max: 1, step: 0.01 },
       description: 'Claude 使用配额 (0-1, 或 -1 代表未知)',
+    },
+    claudeQuoteRestIn: {
+      control: 'text',
+      description: 'Claude 重置时间',
     },
     tier: {
       control: { type: 'select' },
@@ -61,13 +86,8 @@ type Story = StoryObj<typeof meta>;
 // 示例 1: 默认状态（其他用户）
 export const Default: Story = {
   args: {
-    nickName: 'Alex Johnson',
-    email: 'alex.j@example.com',
-    userAvatar: 'https://api.dicebear.com/9.x/avataaars/svg?seed=Alex',
-    geminiQuota: 0.45,
-    claudeQuota: 0.72,
+    ...mockSessionItems[0],
     isCurrentUser: false,
-    tier: 'g1-pro-tier',
   },
 };
 
@@ -75,13 +95,8 @@ export const Default: Story = {
 // 此时应该显示 "当前" 徽标，且操作按钮被禁用
 export const CurrentUser: Story = {
   args: {
-    nickName: 'Master Admin',
-    email: 'admin@system.com',
-    userAvatar: 'https://api.dicebear.com/9.x/avataaars/svg?seed=Felix',
-    geminiQuota: 0.12,
-    claudeQuota: 0.30,
+    ...mockSessionItems[0],
     isCurrentUser: true,
-    tier: 'g1-ultra-tier',
   },
 };
 
@@ -89,25 +104,17 @@ export const CurrentUser: Story = {
 // 进度条应该显示灰色或未知样式
 export const UnknownUsage: Story = {
   args: {
-    nickName: 'Guest User',
-    email: 'guest@temp.com',
-    userAvatar: 'https://api.dicebear.com/9.x/avataaars/svg?seed=Guest',
-    geminiQuota: -1,
-    claudeQuota: -1,
+    ...mockSessionItems[2],
     isCurrentUser: false,
-    tier: 'free-tier',
   },
 };
 
 // 示例 4: 额度即将耗尽
 export const HighUsage: Story = {
   args: {
-    nickName: 'Power User',
-    email: 'heavy.usage@work.com',
-    userAvatar: 'https://api.dicebear.com/9.x/avataaars/svg?seed=Power',
-    geminiQuota: 0.98,
-    claudeQuota: 1.0,
+    ...mockSessionItems[1],
+    geminiProQuote: 0.98,
+    claudeQuote: 1.0,
     isCurrentUser: false,
-    tier: 'g1-pro-tier',
   },
 };

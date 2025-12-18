@@ -1,16 +1,12 @@
 import React from 'react';
-import {
-  motion,
-  useMotionTemplate,
-  useMotionValue,
-  useSpring
-} from 'framer-motion';
-import { Tooltip } from 'antd';
-import { cn } from "@/lib/utils.ts";
-import { Avatar } from "@/components/ui/avatar.tsx";
-import { ArrowLeftRight, Crown, Gem, Trash2 } from 'lucide-react';
-import { BaseButton } from "@/components/base-ui/BaseButton.tsx";
+import {motion, useMotionTemplate, useMotionValue, useSpring} from 'framer-motion';
+import {Tooltip} from 'antd';
+import {cn} from "@/lib/utils.ts";
+import {Avatar} from "@/components/ui/avatar.tsx";
+import {ArrowLeftRight, Crown, Gem, Trash2} from 'lucide-react';
+import {BaseButton} from "@/components/base-ui/BaseButton.tsx";
 import {Variants} from "motion/react";
+import {LiquidProgressBar} from "@/components/ui/liquid-progress-bar.tsx";
 
 // ==========================================
 // 类型定义
@@ -22,8 +18,14 @@ interface UserSessionCardProps {
   userAvatar: string;
   email: string;
   tier: UserTier;
-  geminiQuota: number | -1;
-  claudeQuota: number | -1;
+  geminiProQuote: number | -1
+  geminiProQuoteRestIn: string
+  geminiFlashQuote: number | -1
+  geminiFlashQuoteRestIn: string
+  geminiImageQuote: number | -1
+  geminiImageQuoteRestIn: string
+  claudeQuote: number | -1
+  claudeQuoteRestIn: string
   isCurrentUser: boolean;
   onSelect: () => void
   onSwitch: () => void
@@ -122,7 +124,7 @@ export function AccountSessionListCard(props: UserSessionCardProps) {
       onClick={props.onSelect}
       onMouseMove={handleMouseMove}
       className={cn(
-        "group w-[320px] rounded-2xl p-6 border cursor-pointer relative overflow-hidden",
+        "group w-[340px] rounded-2xl px-6 py-5 border cursor-pointer relative overflow-hidden",
         // 移除 hover:shadow-xl，因为我们完全用 JS 控制阴影
       )}
       style={otherStyles}
@@ -146,11 +148,11 @@ export function AccountSessionListCard(props: UserSessionCardProps) {
       }}
     >
 
-      {props.isCurrentUser && (
-        <div className="absolute top-1 right-1 px-2 py-0.5 bg-blue-500 text-white text-[10px] font-bold rounded-full shadow-sm leading-tight z-10">
-          当前
-        </div>
-      )}
+      {props.isCurrentUser && <div title={"当前会话"} className="flex items-center gap-1 mt-1 h-2 absolute top-1.5 right-1.5">
+        <div className="w-1 h-2 bg-blue-500 rounded-full animate-[bounce_1s_infinite]"></div>
+        <div className="w-1 h-3 bg-blue-500 rounded-full animate-[bounce_1s_infinite_100ms]"></div>
+        <div className="w-1 h-1.5 bg-blue-500 rounded-full animate-[bounce_1s_infinite_200ms]"></div>
+      </div>}
 
       {/* --- 特效层 A: 聚光灯 (鼠标跟随) --- */}
       <motion.div
@@ -180,7 +182,7 @@ export function AccountSessionListCard(props: UserSessionCardProps) {
 
         {/* 头部区域 */}
         <motion.header
-          className="flex items-center gap-4 mb-4 relative"
+          className="flex items-center gap-4 mb-2 relative"
           variants={childVariants}
         >
           <Avatar
@@ -208,41 +210,58 @@ export function AccountSessionListCard(props: UserSessionCardProps) {
               </div>
             </div>
             <Tooltip title={props.email} styles={{ container: tooltipInnerStyle }}>
-              <p className="text-sm text-slate-500 font-medium line-clamp-2 break-all">{props.email}</p>
+              {/* 高度用于统一一行和两行对其 */}
+              <p className="text-sm text-slate-500 font-medium line-clamp-2 break-all h-[42px]">{props.email}</p>
             </Tooltip>
           </div>
         </motion.header>
 
         {/* 进度条区域 */}
-        <motion.div className="space-y-3" variants={childVariants}>
-          {props.geminiQuota === -1 ? (
+        <motion.div className="space-y-2" variants={childVariants}>
+          {props.geminiProQuote === -1 ? (
             <>
-              <UsageItem
-                label="Gemini"
+              <LiquidProgressBar
+                type="gemini-pro"
                 percentage={-1}
-                color="bg-blue-400"
-                trackColor={tier === 'g1-ultra-tier' ? "bg-blue-100/40" : "bg-blue-50"}
+                resetIn={props.geminiProQuoteRestIn}
               />
-              <UsageItem
-                label="Claude"
+              <LiquidProgressBar
+                type="claude"
                 percentage={-1}
-                color="bg-violet-400"
-                trackColor={tier === 'g1-ultra-tier' ? "bg-violet-100/40" : "bg-violet-50"}
+                resetIn={props.claudeQuoteRestIn}
+              />
+              <LiquidProgressBar
+                type="gemini-flash"
+                percentage={-1}
+                resetIn={props.geminiFlashQuoteRestIn}
+              />
+              <LiquidProgressBar
+                type="gemini-image"
+                percentage={-1}
+                resetIn={props.geminiImageQuoteRestIn}
               />
             </>
           ) : (
             <>
-              <UsageItem
-                label="Gemini"
-                percentage={props.geminiQuota}
-                color="bg-blue-400"
-                trackColor={tier === 'g1-ultra-tier' ? "bg-blue-100/40" : "bg-blue-50"}
+              <LiquidProgressBar
+                type="gemini-pro"
+                percentage={props.geminiProQuote}
+                resetIn={props.geminiProQuoteRestIn}
               />
-              <UsageItem
-                label="Claude"
-                percentage={props.claudeQuota}
-                color="bg-violet-400"
-                trackColor={tier === 'g1-ultra-tier' ? "bg-violet-100/40" : "bg-violet-50"}
+              <LiquidProgressBar
+                type="claude"
+                percentage={props.claudeQuote}
+                resetIn={props.claudeQuoteRestIn}
+              />
+              <LiquidProgressBar
+                type="gemini-flash"
+                percentage={props.geminiFlashQuote}
+                resetIn={props.geminiFlashQuoteRestIn}
+              />
+              <LiquidProgressBar
+                type="gemini-image"
+                percentage={props.geminiImageQuote}
+                resetIn={props.geminiImageQuoteRestIn}
               />
             </>
           )}

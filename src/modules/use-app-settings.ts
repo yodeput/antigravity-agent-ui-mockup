@@ -1,16 +1,19 @@
 import {create} from "zustand";
 import {SettingsCommands} from "@/commands/SettingsCommands.ts";
 import {logger} from "@/lib/logger.ts";
+import {relaunch} from "@tauri-apps/plugin-process";
 
 type State = {
   hydrated: boolean;
   systemTrayEnabled: boolean;
   silentStartEnabled: boolean;
+  debugMode: boolean;
   privateMode: boolean;
   loading: {
     hydrate: boolean;
     systemTray: boolean;
     silentStart: boolean;
+    debugMode: boolean;
     privateMode: boolean;
   };
 }
@@ -20,6 +23,7 @@ type Actions = {
   refresh: () => Promise<void>;
   setSystemTrayEnabled: (enabled: boolean) => Promise<void>;
   setSilentStartEnabled: (enabled: boolean) => Promise<void>;
+  setDebugMode: (enabled: boolean) => Promise<void>;
   setPrivateMode: (enabled: boolean) => Promise<void>;
 }
 
@@ -29,6 +33,7 @@ export const useAppSettings = create<State & Actions>((setState, getState) => {
   const loadAllSettings = async (): Promise<{
     systemTrayEnabled: boolean;
     silentStartEnabled: boolean;
+    debugMode: boolean;
     privateMode: boolean;
   }> => {
     const settings = await SettingsCommands.getAll();
@@ -36,6 +41,7 @@ export const useAppSettings = create<State & Actions>((setState, getState) => {
     return {
       systemTrayEnabled: typeof settings?.system_tray_enabled === 'boolean' ? settings.system_tray_enabled : false,
       silentStartEnabled: typeof settings?.silent_start_enabled === 'boolean' ? settings.silent_start_enabled : false,
+      debugMode: typeof settings?.debugMode === 'boolean' ? settings.debugMode : false,
       privateMode: typeof settings?.privateMode === 'boolean' ? settings.privateMode : true,
     }
   }
@@ -45,11 +51,13 @@ export const useAppSettings = create<State & Actions>((setState, getState) => {
     // 默认保持当前行为：用户卡片信息打码
     systemTrayEnabled: false,
     silentStartEnabled: false,
+    debugMode: false,
     privateMode: true,
     loading: {
       hydrate: false,
       systemTray: false,
       silentStart: false,
+      debugMode: false,
       privateMode: false,
     },
     hydrate: async () => {
@@ -152,6 +160,26 @@ export const useAppSettings = create<State & Actions>((setState, getState) => {
         })
       } finally {
         setState(state => ({loading: {...state.loading, silentStart: false}}))
+      }
+    },
+    setDebugMode: async (enabled: boolean) => {
+      if (getState().loading.debugMode) return;
+      setState(state => ({loading: {...state.loading, debugMode: true}}))
+
+      try {
+        const result = await SettingsCommands.saveDebugModeState(enabled);
+        const nextEnabled = typeof result === 'boolean' ? result : enabled;
+        setState({debugMode: nextEnabled, hydrated: true});
+        await relaunch();
+      } catch (error) {
+        logger.error('切换 Debug Mode 失败', {
+          module: 'AppSettings',
+          action: 'set_debug_mode_failed',
+          enabled,
+          error: error instanceof Error ? error.message : String(error)
+        })
+      } finally {
+        setState(state => ({loading: {...state.loading, debugMode: false}}))
       }
     },
     setPrivateMode: async (enabled: boolean) => {
