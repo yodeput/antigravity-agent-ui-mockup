@@ -1,16 +1,14 @@
 # Antigravity Agent
 
-> !!重要: 1.4.0 版本, 本项目彻底进行了重构, 虽然本程序已经处理了迁移, 但开源项目精力有限无法处理所有可能的情况, 若您之前使用的是旧版本, 请先在老版本导出账户数据后, 然后使用新版本重新导入!!
-
-> !!重要: 若无法获取配额可能是因为使用了 Antigravity 的旧版本数据, 需要将 Antigravity 更新至 1.11.14(该版本发布于 2025/12/04) 版本以上然后重新登录无法获取配额信息的账户!!
-
 > 开箱即用的 Antigravity 账户管理程序。
 
 <img src="screenshots/dashboard.png" alt="dashboard" width="700" />
 
 Windows ✅️
+
 MacOS ✅️
-Linux ✅️
+
+Ubuntu(其他 Linux 发行版未经测试) ✅️
 
 ## 下载安装
 
@@ -40,13 +38,15 @@ Linux ✅️
 遇到问题时，请按照以下步骤提供日志以便快速定位和解决问题：
 
 1. **查找日志文件**：
-   - 日志文件存储位置（所有平台统一）：
+   - 若能够启动程序
+     - 点几"设置" -> 启动"调试模式"
+     - 复现 BUG
+     - 点击"设置" -> "打开日志文件位置"
+   - 若无法启动程序, 也可在打开下面路径找到日志文件
      - Windows: `%USERPROFILE%\.antigravity-agent\logs\`
      - macOS: `~/.antigravity-agent/logs/`
      - Linux: `~/.antigravity-agent/logs/`
-   - 查找当前日期的日志文件（格式：`antigravity-agent.YYYY-MM-DD.log`，例如：`antigravity-agent.2025-12-11.log`）
-   - 或者查找最新的日志文件进行复制
-   - 注意：日志文件会自动脱敏处理敏感信息
+   - 查找当前日期的日志文件（格式：`antigravity-agent.YYYY-MM-DD`，例如：`antigravity-agent.2025-12-11`）
 
 2. **⚠️ 重要：检查敏感信息**
    - **打开日志文件**，仔细检查是否包含个人敏感信息
@@ -58,9 +58,9 @@ Linux ✅️
 
 ## 📝 TODO 列表
 
+- [ ] 扩展支持
 - [ ] 国际化支持
 - [ ] 主题支持
 - [ ] 检查更新
-- [ ] 扩展支持
 - [ ] 规范开发流程
 - [ ] CHANGELOG
