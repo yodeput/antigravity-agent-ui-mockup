@@ -85,14 +85,19 @@ const MockupGenerator: React.FC<MockupGeneratorProps> = ({ className }) => {
       // Simulate API call for now - this would be replaced with actual API integration
       await new Promise(resolve => setTimeout(resolve, 2000));
       
+      // Get the selected aspect ratio dimensions
+      const aspectRatio = ASPECT_RATIOS.find(r => r.id === selectedAspectRatio) || ASPECT_RATIOS[0];
+      const designLang = DESIGN_LANGUAGES.find(d => d.id === selectedDesignLanguage)?.name || selectedDesignLanguage;
+      
       // For demo purposes, we'll show a placeholder result
       // In a real implementation, this would call the actual image generation API
       setResult({
         imageUrl: 'data:image/svg+xml,' + encodeURIComponent(`
-          <svg width="512" height="512" xmlns="http://www.w3.org/2000/svg">
+          <svg width="${aspectRatio.width}" height="${aspectRatio.height}" xmlns="http://www.w3.org/2000/svg">
             <rect width="100%" height="100%" fill="#f0f0f0"/>
             <text x="50%" y="45%" font-family="Arial, sans-serif" font-size="20" fill="#666" text-anchor="middle">UI/UX Mockup Preview</text>
-            <text x="50%" y="55%" font-family="Arial, sans-serif" font-size="14" fill="#999" text-anchor="middle">${selectedDesignLanguage} Design</text>
+            <text x="50%" y="55%" font-family="Arial, sans-serif" font-size="14" fill="#999" text-anchor="middle">${designLang}</text>
+            <text x="50%" y="65%" font-family="Arial, sans-serif" font-size="12" fill="#bbb" text-anchor="middle">${aspectRatio.width}x${aspectRatio.height}</text>
           </svg>
         `),
         prompt: prompt,
@@ -113,7 +118,7 @@ const MockupGenerator: React.FC<MockupGeneratorProps> = ({ className }) => {
     
     const link = document.createElement('a');
     link.href = result.imageUrl;
-    link.download = `mockup-${Date.now()}.png`;
+    link.download = `mockup-${Date.now()}.svg`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
