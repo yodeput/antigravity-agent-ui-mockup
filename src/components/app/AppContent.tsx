@@ -10,6 +10,8 @@ import {useAppGlobalLoader} from "@/modules/use-app-global-loader.ts";
 import {AccountSessionList, AccountSessionListAccountItem} from "@/components/business/AccountSessionList.tsx";
 import AccountsListToolbar, {type ListToolbarValue} from "@/components/business/AccountsListToolbar.tsx";
 import {logger} from "@/lib/logger.ts";
+import {useAppNavigation} from "@/modules/use-app-navigation.ts";
+import MockupGenerator from "@/components/business/MockupGenerator.tsx";
 
 const tierRank: Record<UserTier, number> = {
   'g1-ultra-tier': 0,
@@ -18,6 +20,7 @@ const tierRank: Record<UserTier, number> = {
 };
 
 export function AppContent() {
+  const { currentView } = useAppNavigation();
   const [isUserDetailOpen, setIsUserDetailOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<AccountSessionListAccountItem | null>(null);
   const antigravityAccount = useAntigravityAccount();
@@ -218,6 +221,11 @@ export function AppContent() {
           return byName;
       }
     });
+
+  // Render Mockup Generator view
+  if (currentView === 'mockup-generator') {
+    return <MockupGenerator className="flex-1" />;
+  }
 
   return (
     <>
