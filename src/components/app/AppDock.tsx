@@ -1,5 +1,5 @@
 import React, {useCallback, useState} from 'react';
-import {ArrowBigDownDash, ArrowBigUpDash, Settings, UserRoundPlus} from 'lucide-react';
+import {ArrowBigDownDash, ArrowBigUpDash, Settings, UserRoundPlus, Sparkles, Users} from 'lucide-react';
 import {useAntigravityAccount} from '@/modules/use-antigravity-account.ts';
 import toast from 'react-hot-toast';
 import {useImportExportAccount} from "@/modules/use-import-export-accounts.ts";
@@ -10,6 +10,7 @@ import {Modal} from 'antd';
 import {useSignInNewAntigravityAccount} from "@/hooks/use-sign-in-new-antigravity-account.ts";
 import {Dock, DockIcon} from "@/components/ui/dock";
 import {AnimatedTooltip} from "@/components/ui/animated-tooltip.tsx";
+import {useAppNavigation} from "@/modules/use-app-navigation.ts";
 
 const {confirm} = Modal;
 
@@ -17,6 +18,7 @@ const AppDock = () => {
 
   // ========== 应用状态 ==========
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const { currentView, setView } = useAppNavigation();
 
   const antigravityAccount = useAntigravityAccount();
   const importExportAccount = useImportExportAccount();
@@ -85,6 +87,16 @@ const AppDock = () => {
     <>
       <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-40">
         <Dock>
+          <DockIcon onClick={() => setView('accounts')}>
+            <AnimatedTooltip text={"账户列表"}>
+              <Users className="size-6" />
+            </AnimatedTooltip>
+          </DockIcon>
+          <DockIcon onClick={() => setView('mockup-generator')}>
+            <AnimatedTooltip text={"UI/UX Mockup Generator"}>
+              <Sparkles className="size-6" />
+            </AnimatedTooltip>
+          </DockIcon>
           <DockIcon onClick={handleBackupAndRestartClick}>
             <AnimatedTooltip text={"登录新账户"}>
               <UserRoundPlus className="size-6" />
