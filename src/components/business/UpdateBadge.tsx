@@ -45,9 +45,9 @@ const InlineBadge: React.FC<InlineBadgeProps> = ({
 
 
 /**
- * 更新徽章组件
- * 已内联徽章样式，避免依赖 BaseBadge
- * 保持原有功能不变
+ * Update Badge Component
+ * Inline badge styles to avoid BaseBadge dependency
+ * Maintains original functionality
  */
 export interface UpdateBadgeProps {
   state?: UpdateState;
@@ -69,7 +69,7 @@ const UpdateBadge: React.FC<UpdateBadgeProps> = ({
   className,
 }) => {
 
-  // 使用自动更新检查 Hook
+  // Use auto-update checker Hook
   const {
     updateState: internalState,
     updateInfo: internalUpdateInfo,
@@ -78,17 +78,17 @@ const UpdateBadge: React.FC<UpdateBadgeProps> = ({
     startDownload,
     installAndRelaunch,
     dismissUpdate,
-  } = useUpdateChecker(state == null ? autoCheck : false); // 受控时禁用自动检查
+  } = useUpdateChecker(state == null ? autoCheck : false); // Disable auto-check when controlled
 
   const updateState = state ?? internalState;
   const updateInfo = updateInfoOverride ?? internalUpdateInfo;
   const downloadProgress = progressOverride ?? internalDownloadProgress;
   const updateError = errorOverride ?? internalError;
 
-  // 更新对话框状态
+  // Update dialog state
   const [isUpdateDialogOpen, setIsUpdateDialogOpen] = useState(false);
 
-  // 处理更新徽章点击
+  // Handle update badge click
   const handleUpdateBadgeClick = () => {
     if (onClick) {
       onClick();
@@ -97,14 +97,14 @@ const UpdateBadge: React.FC<UpdateBadgeProps> = ({
     setIsUpdateDialogOpen(true);
   };
 
-  // 处理开始下载
+  // Handle start download
   const handleStartDownload = async () => {
     try {
       await startDownload();
-      toast.success('更新包下载完成，点击重启按钮安装');
+      toast.success('Update package downloaded. Click restart button to install.');
     } catch (error) {
-      // 只在控制台打印错误，不提示用户
-      logger.error('下载失败', {
+      // Only log error to console, don't notify user
+      logger.error('Download failed', {
         module: 'AppDock',
         action: 'download_update_failed',
         error: error instanceof Error ? error.message : String(error)
@@ -112,15 +112,15 @@ const UpdateBadge: React.FC<UpdateBadgeProps> = ({
     }
   };
 
-  // 处理安装并重启
+  // Handle install and restart
   const handleInstallAndRelaunch = async () => {
     try {
-      toast('正在安装更新并重启应用...');
+      toast('Installing update and restarting app...');
       await installAndRelaunch();
-      // 如果成功，应用会重启，这里的代码不会执行
+      // If successful, the app will restart and this code won't execute
     } catch (error) {
-      // 只在控制台打印错误，不提示用户
-      logger.error('安装失败', {
+      // Only log error to console, don't notify user
+      logger.error('Installation failed', {
         module: 'AppDock',
         action: 'install_update_failed',
         error: error instanceof Error ? error.message : String(error)
@@ -147,7 +147,7 @@ const UpdateBadge: React.FC<UpdateBadgeProps> = ({
         return (
           <>
             <Download className="h-3.5 w-3.5" />
-            <span>有更新</span>
+            <span>Update Available</span>
           </>
         );
       case 'downloading':
@@ -161,39 +161,39 @@ const UpdateBadge: React.FC<UpdateBadgeProps> = ({
         return (
           <>
             <RotateCw className="h-3.5 w-3.5" />
-            <span>重启更新</span>
+            <span>Restart to Update</span>
           </>
         );
       case 'error':
         return (
           <>
             <AlertTriangle className="h-3.5 w-3.5" />
-            <span>更新失败</span>
+            <span>Update Failed</span>
           </>
         );
       default:
         return (
           <>
             <Download className="h-3.5 w-3.5" />
-            <span>更新</span>
+            <span>Update</span>
           </>
         );
     }
   })();
 
   const tooltipContent = updateError
-    ? `更新失败：${updateError}`
+    ? `Update failed: ${updateError}`
     : updateState === 'update-available' && updateInfo
-      ? `发现新版本 v${updateInfo.version}，点击查看`
+      ? `New version v${updateInfo.version} found, click to view`
       : updateState === 'downloading'
-        ? `正在下载更新 ${downloadProgress?.percentage ?? 0}%`
+        ? `Downloading update ${downloadProgress?.percentage ?? 0}%`
         : updateState === 'ready-to-install'
-          ? '更新已下载，点击重启安装'
-          : '点击查看更新';
+          ? 'Update downloaded, click to restart and install'
+          : 'Click to view updates';
 
   return (
     <>
-      {/* 更新徽章 */}
+      {/* Update Badge */}
       <Tooltip title={tooltipContent}>
         <button
           type="button"
@@ -213,7 +213,7 @@ const UpdateBadge: React.FC<UpdateBadgeProps> = ({
         </button>
       </Tooltip>
 
-      {/* 更新对话框 */}
+      {/* Update Dialog */}
       <BusinessUpdateDialog
         isOpen={isUpdateDialogOpen}
         onClose={() => setIsUpdateDialogOpen(false)}

@@ -18,7 +18,7 @@ import {
   mockAdditionDataMap,
 } from '@/stories/mocks/accountSessions.ts';
 
-// Storybook 下不需要真实原生能力；只提供空壳避免运行时报错。
+// Storybook doesn't need native capabilities; provide shims to avoid runtime errors.
 if (typeof window !== 'undefined') {
   const w = window as any;
   w.__TAURI_INTERNALS__ ??= {

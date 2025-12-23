@@ -1,6 +1,6 @@
 /**
- * 配置管理 Store (完全集成版)
- * 直接使用 Zustand，集成所有配置管理逻辑，提供完整接口
+ * Configuration Management Store (fully integrated version)
+ * Uses Zustand directly, integrates all configuration management logic, provides complete interface
  */
 
 import {create} from 'zustand';
@@ -18,165 +18,165 @@ interface EncryptedConfigData {
   backups: BackupData[];
 }
 
-// Store 状态
+// Store State
 interface ConfigState {
   isImporting: boolean;
   isExporting: boolean;
   isCheckingData: boolean;
-  // 对话框状态
+  // Dialog state
   importDialogIsOpen: boolean;
   exportDialogIsOpen: boolean;
-  // 待处理操作数据
+  // Pending operation data
   pendingImportPath?: string;
   pendingExportData?: BackupData[];
 }
 
-// Store 操作
+// Store Actions
 interface ConfigActions {
   setImporting: (isImporting: boolean) => void;
   setExporting: (isExporting: boolean) => void;
   setCheckingData: (isCheckingData: boolean) => void;
-  // 对话框控制
+  // Dialog control
   openImportDialog: (filePath: string) => void;
   closeImportDialog: () => void;
   openExportDialog: (accountContent: BackupData[]) => void;
   closeExportDialog: () => void;
-  // 密码提交处理
+  // Password submit handling
   submitImportPassword: (password: string) => Promise<void>;
   submitExportPassword: (password: string) => Promise<void>;
-  // 主要操作
+  // Main operations
   importConfig: () => Promise<void>;
   exportConfig: () => Promise<void>;
 }
 
-// 创建 Zustand Store
+// Create Zustand Store
 export const useImportExportAccount = create<ConfigState & ConfigActions>()(
   (set, get) => {
     return {
-      // 初始状态
+      // Initial state
       isImporting: false,
       isExporting: false,
       isCheckingData: false,
-      // 对话框初始状态
+      // Dialog initial state
       importDialogIsOpen: false,
       exportDialogIsOpen: false,
-      // 待处理操作数据
+      // Pending operation data
       pendingImportPath: undefined,
       pendingExportData: undefined,
 
-      // 状态设置方法
+      // State setter methods
       setImporting: (isImporting: boolean) => set({ isImporting }),
       setExporting: (isExporting: boolean) => set({ isExporting }),
       setCheckingData: (isCheckingData: boolean) => set({ isCheckingData }),
 
-      // 打开导入对话框
+      // Open import dialog
       openImportDialog: (filePath: string) => set({
         importDialogIsOpen: true,
         pendingImportPath: filePath
       }),
 
-      // 关闭导入对话框
+      // Close import dialog
       closeImportDialog: () => set({
         importDialogIsOpen: false,
         pendingImportPath: undefined
       }),
 
-      // 打开导出对话框
+      // Open export dialog
       openExportDialog: (backupData: BackupData[]) => set({
         exportDialogIsOpen: true,
         pendingExportData: backupData
       }),
 
-      // 关闭导出对话框
+      // Close export dialog
       closeExportDialog: () => set({
         exportDialogIsOpen: false,
         pendingExportData: undefined
       }),
 
-      // ============ 密码提交处理 ============
+      // ============ Password Submit Handling ============
       submitImportPassword: async (password: string): Promise<void> => {
-        // 在方法开始时捕获所需状态，避免竞态条件
+        // Capture required state at method start to avoid race conditions
         const { pendingImportPath } = get();
         if (!pendingImportPath) {
-          toast.error('没有待处理的导入文件');
+          toast.error('No pending import file');
           return;
         }
 
         try {
           get().closeImportDialog();
           set({ isImporting: true });
-          toast.loading('正在使用 Rust 解密文件...', {duration: 1});
+          toast.loading('Decrypting file with Rust...', {duration: 1});
 
-          // 读取文件并解密
+          // Read file and decrypt
           const encryptedFile = await readTextFile(pendingImportPath);
           const decryptedJson: string = await AccountManageCommands.decryptConfig(encryptedFile, password);
           const configData: EncryptedConfigData = JSON.parse(decryptedJson);
 
-          // 验证配置数据格式
+          // Validate config data format
           if (!configData.version || !configData.backups || !Array.isArray(configData.backups)) {
-            throw new Error('配置文件格式无效');
+            throw new Error('Invalid config file format');
           }
 
-          logger.info('开始恢复备份数据', {
+          logger.info('Starting backup data restoration', {
             module: 'useImportExportAccount',
             backupCount: configData.backups.length
           });
-          toast.loading('正在恢复账户数据...', {duration: 1});
+          toast.loading('Restoring account data...', {duration: 1});
 
           const result = await AccountManageCommands.restoreBackupFiles(configData.backups);
 
           if (result.failed.length > 0) {
-            logger.warn('部分文件恢复失败', {
+            logger.warn('Some files failed to restore', {
               module: 'useImportExportAccount',
               restoredCount: result.restoredCount,
               failedCount: result.failed.length,
               failedFiles: result.failed
             });
-            toast.success(`配置文件导入成功，已恢复 ${result.restoredCount} 个账户，${result.failed.length} 个失败`);
+            toast.success(`Config file imported successfully. Restored ${result.restoredCount} accounts, ${result.failed.length} failed`);
           } else {
-            logger.info('所有文件恢复成功', {
+            logger.info('All files restored successfully', {
               module: 'useImportExportAccount',
               restoredCount: result.restoredCount
             });
-            toast.success(`配置文件导入成功，已恢复 ${result.restoredCount} 个账户`);
+            toast.success(`Config file imported successfully. Restored ${result.restoredCount} accounts`);
           }
         } catch (error) {
-          logger.error('导入失败', {
+          logger.error('Import failed', {
             module: 'useImportExportAccount',
             stage: 'import_process',
             error: error instanceof Error ? error.message : String(error)
           });
-          toast.error(`配置文件导入失败: ${error instanceof Error ? error.message : String(error)}`);
+          toast.error(`Config file import failed: ${error instanceof Error ? error.message : String(error)}`);
         } finally {
           set({ isImporting: false });
         }
       },
 
       submitExportPassword: async (password: string): Promise<void> => {
-        // 在方法开始时捕获所需状态，避免竞态条件
+        // Capture required state at method start to avoid race conditions
         const { pendingExportData } = get();
         if (!pendingExportData || pendingExportData.length === 0) {
-          toast.error('没有待处理的导出数据');
+          toast.error('No pending export data');
           return;
         }
 
         try {
           get().closeExportDialog();
           set({ isExporting: true });
-          toast.loading('正在生成加密配置文件...', {duration: 1});
+          toast.loading('Generating encrypted config file...', {duration: 1});
 
-          // 构建配置数据
+          // Build config data
           const configData: EncryptedConfigData = {
             version: '1.1.0',
             backupCount: pendingExportData.length,
             backups: pendingExportData
           };
 
-          // 调用后端加密
+          // Call backend encryption
           const configJson = JSON.stringify(configData, null, 2);
           const configSize = new Blob([configJson]).size;
 
-          logger.info('配置数据已生成', {
+          logger.info('Config data generated', {
             module: 'useImportExportAccount',
             backupCount: pendingExportData.length,
             configSize
@@ -184,34 +184,34 @@ export const useImportExportAccount = create<ConfigState & ConfigActions>()(
 
           const encryptedData = await AccountManageCommands.encryptConfig(configJson, password);
 
-          // 选择保存位置
+          // Select save location
           const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
           const defaultFileName = `antigravity_encrypted_config_${timestamp}.enc`;
 
           const savePath = await save({
-            title: '保存配置文件',
+            title: 'Save Config File',
             defaultPath: defaultFileName,
             filters: [
               {
-                name: 'Antigravity 加密配置文件',
+                name: 'Antigravity Encrypted Config',
                 extensions: ['enc']
               }
             ]
           });
 
           if (!savePath || typeof savePath !== 'string') {
-            logger.warn('未选择保存位置', {
+            logger.warn('No save location selected', {
               module: 'useImportExportAccount'
             });
-            toast.error('未选择保存位置');
+            toast.error('No save location selected');
             return;
           }
 
-          // 保存加密文件
+          // Save encrypted file
           await LoggingCommands.writeTextFile(savePath, encryptedData);
 
-          toast.success(`配置文件已保存: ${savePath}`);
-          logger.info('导出配置成功', {
+          toast.success(`Config file saved: ${savePath}`);
+          logger.info('Export config successful', {
             module: 'useImportExportAccount',
             savePath,
             backupCount: pendingExportData.length,
@@ -219,32 +219,32 @@ export const useImportExportAccount = create<ConfigState & ConfigActions>()(
           });
 
         } catch (error) {
-          logger.error('导出失败', {
+          logger.error('Export failed', {
             module: 'useImportExportAccount',
             stage: 'password_validation',
             error: error instanceof Error ? error.message : String(error)
           });
-          toast.error(`导出配置文件失败: ${error instanceof Error ? error.message : String(error)}`);
+          toast.error(`Export config file failed: ${error instanceof Error ? error.message : String(error)}`);
         } finally {
           set({ isExporting: false });
         }
       },
 
-      // ============ 导入配置 ============
+      // ============ Import Config ============
       importConfig: async (): Promise<void> => {
-        logger.info('开始导入配置文件', { module: 'useImportExportAccount' });
+        logger.info('Starting config file import', { module: 'useImportExportAccount' });
 
         try {
-          // 选择文件
+          // Select file
           const selected = await open({
-            title: '选择配置文件',
+            title: 'Select Config File',
             filters: [
               {
-                name: '加密配置文件',
+                name: 'Encrypted Config Files',
                 extensions: ['enc']
               },
               {
-                name: '所有文件',
+                name: 'All Files',
                 extensions: ['*']
               }
             ],
@@ -252,64 +252,64 @@ export const useImportExportAccount = create<ConfigState & ConfigActions>()(
           });
 
           if (!selected || typeof selected !== 'string') {
-            logger.warn('未选择文件', {
+            logger.warn('No file selected', {
               module: 'useImportExportAccount'
             });
-            toast.error('未选择文件');
+            toast.error('No file selected');
             return;
           }
 
-          logger.info('已选择文件', {
+          logger.info('File selected', {
             module: 'useImportExportAccount',
             filePath: selected
           });
 
-          // 显示密码对话框，存储文件路径
+          // Show password dialog, store file path
           get().openImportDialog(selected);
 
         } catch (error) {
-          logger.error('文件操作失败', {
+          logger.error('File operation failed', {
             module: 'useImportExportAccount',
             stage: 'file_selection',
             error: error instanceof Error ? error.message : String(error)
           });
-          toast.error(`文件操作失败: ${error instanceof Error ? error.message : String(error)}`);
+          toast.error(`File operation failed: ${error instanceof Error ? error.message : String(error)}`);
         }
       },
 
-      // ============ 导出配置 ============
+      // ============ Export Config ============
       exportConfig: async (): Promise<void> => {
-        logger.info('开始导出配置', { module: 'useImportExportAccount' });
+        logger.info('Starting config export', { module: 'useImportExportAccount' });
 
         try {
-          toast.loading('正在收集账户数据...', {duration: 1});
+          toast.loading('Collecting account data...', {duration: 1});
 
-          // ✅ 获取包含完整内容的备份数据
+          // ✅ Get backup data with complete contents
           const accountContents = await AccountManageCommands.collectAccountContents();
 
           if (accountContents.length === 0) {
-            logger.warn('没有找到账户信息', {
+            logger.warn('No account information found', {
               module: 'useImportExportAccount'
             });
-            toast.error('没有找到任何账户信息，无法导出配置文件');
+            toast.error('No account information found, cannot export config file');
             return;
           }
 
-          logger.info('找到账户数据', {
+          logger.info('Account data found', {
             module: 'useImportExportAccount',
             backupCount: accountContents.length
           });
 
-          // 显示密码对话框，传递备份数据
+          // Show password dialog, pass backup data
           get().openExportDialog(accountContents);
 
         } catch (error) {
-          logger.error('检查数据失败', {
+          logger.error('Data check failed', {
             module: 'useImportExportAccount',
             stage: 'data_collection',
             error: error instanceof Error ? error.message : String(error)
           });
-          toast.error(`检查数据失败: ${error instanceof Error ? error.message : String(error)}`);
+          toast.error(`Data check failed: ${error instanceof Error ? error.message : String(error)}`);
         }
       }
     };

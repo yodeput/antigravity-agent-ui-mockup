@@ -1,52 +1,52 @@
 /**
- * Antigravity 进程运行状态 Store
- * 全局单例，每 5 秒自动检测 Antigravity 是否在运行
+ * Antigravity Process Running State Store
+ * Global singleton, automatically checks if Antigravity is running every 5 seconds
  */
 
 import {create} from 'zustand';
 import {ProcessCommands} from '@/commands/ProcessCommands';
 import {logger} from '../lib/logger.ts';
 
-// 状态接口
+// State interface
 interface AntigravityIsRunningState {
-  /** 是否正在运行 */
+  /** Whether it is running */
   isRunning: boolean;
-  /** 是否正在检查 */
+  /** Whether it is checking */
   isChecking: boolean;
-  /** 最后检查时间 */
+  /** Last check time */
   lastChecked: Date | null;
 }
 
-// 操作接口
+// Actions interface
 interface AntigravityIsRunningActions {
-  /** 检查运行状态 */
+  /** Check running state */
   check: () => Promise<void>;
-  /** 启动自动检查 */
+  /** Start auto check */
   start: () => void;
-  /** 停止自动检查 */
+  /** Stop auto check */
   stop: () => void;
 }
 
-// 全局定时器 ID
+// Global timer ID
 let checkIntervalId: NodeJS.Timeout | null = null;
 
-// 检查间隔（5 秒）
+// Check interval (5 seconds)
 const CHECK_INTERVAL = 5000;
 
 /**
- * Antigravity 运行状态 Store
+ * Antigravity Running State Store
  */
 export const useAntigravityIsRunning = create<
   AntigravityIsRunningState & AntigravityIsRunningActions
 >((set, get) => ({
-  // 初始状态
+  // Initial state
   isRunning: false,
   isChecking: false,
   lastChecked: null,
 
-  // 检查运行状态
+  // Check running state
   check: async () => {
-    // 防止并发检查
+    // Prevent concurrent checks
     if (get().isChecking) {
       return;
     }
@@ -61,12 +61,12 @@ export const useAntigravityIsRunning = create<
         isChecking: false,
       });
     } catch (error) {
-      logger.error('检查状态失败', {
+      logger.error('Failed to check status', {
         module: 'AntigravityIsRunning',
         action: 'check_status_failed',
         error: error instanceof Error ? error.message : String(error)
       });
-      // 检查失败时假设未运行
+      // Assume not running when check fails
       set({
         isRunning: false,
         lastChecked: new Date(),
@@ -75,34 +75,34 @@ export const useAntigravityIsRunning = create<
     }
   },
 
-  // 启动自动检查
+  // Start auto check
   start: () => {
-    // 清除已存在的定时器
+    // Clear existing timer
     if (checkIntervalId !== null) {
       clearInterval(checkIntervalId);
     }
 
-    // 立即检查一次
+    // Check immediately once
     get().check();
 
-    // 启动定时检查
+    // Start periodic check
     checkIntervalId = setInterval(() => {
       get().check();
     }, CHECK_INTERVAL);
 
-    logger.info('已启动自动检查', {
+    logger.info('Auto check started', {
         module: 'AntigravityIsRunning',
         action: 'start_auto_check',
         interval: CHECK_INTERVAL
       });
   },
 
-  // 停止自动检查
+  // Stop auto check
   stop: () => {
     if (checkIntervalId !== null) {
       clearInterval(checkIntervalId);
       checkIntervalId = null;
-      logger.info('已停止自动检查', {
+      logger.info('Auto check stopped', {
         module: 'AntigravityIsRunning',
         action: 'stop_auto_check'
       });

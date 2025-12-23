@@ -6,14 +6,14 @@ import {
   tierOptions,
 } from '@/stories/mocks/accountSessions.ts';
 
-// 定义元数据
+// Define metadata
 const meta = {
   title: 'Components/AccountSessionListCard',
   component: AccountSessionListCard,
   parameters: {
-    // 让组件在画板居中显示
+    // Center the component on the canvas
     layout: 'centered',
-    // 背景色微调，方便看清卡片的阴影
+    // Background tweak to make card shadow easier to see
     backgrounds: {
       default: 'light-gray',
       values: [
@@ -23,55 +23,55 @@ const meta = {
     },
   },
   tags: ['autodocs'],
-  // 配置控件类型
+  // Configure control types
   argTypes: {
     geminiProQuote: {
       control: { type: 'range', min: -1, max: 1, step: 0.01 },
-      description: 'Gemini Pro 使用配额 (0-1, 或 -1 代表未知)',
+      description: 'Gemini Pro usage quota (0-1, or -1 for unknown)',
     },
     geminiProQuoteRestIn: {
       control: 'text',
-      description: 'Gemini Pro 重置时间',
+      description: 'Gemini Pro reset time',
     },
     geminiFlashQuote: {
       control: { type: 'range', min: -1, max: 1, step: 0.01 },
-      description: 'Gemini Flash 使用配额 (0-1, 或 -1 代表未知)',
+      description: 'Gemini Flash usage quota (0-1, or -1 for unknown)',
     },
     geminiFlashQuoteRestIn: {
       control: 'text',
-      description: 'Gemini Flash 重置时间',
+      description: 'Gemini Flash reset time',
     },
     geminiImageQuote: {
       control: { type: 'range', min: -1, max: 1, step: 0.01 },
-      description: 'Gemini Image 使用配额 (0-1, 或 -1 代表未知)',
+      description: 'Gemini Image usage quota (0-1, or -1 for unknown)',
     },
     geminiImageQuoteRestIn: {
       control: 'text',
-      description: 'Gemini Image 重置时间',
+      description: 'Gemini Image reset time',
     },
     claudeQuote: {
       control: { type: 'range', min: -1, max: 1, step: 0.01 },
-      description: 'Claude 使用配额 (0-1, 或 -1 代表未知)',
+      description: 'Claude usage quota (0-1, or -1 for unknown)',
     },
     claudeQuoteRestIn: {
       control: 'text',
-      description: 'Claude 重置时间',
+      description: 'Claude reset time',
     },
     tier: {
       control: { type: 'select' },
       options: tierOptions,
-      description: '账户级别',
+      description: 'Account tier',
     },
     userAvatar: {
       control: 'text',
-      description: '用户头像 URL',
+      description: 'User avatar URL',
     },
     isCurrentUser: {
       control: 'boolean',
-      description: '是否为当前登录用户',
+      description: 'Whether this is the currently signed-in user',
     },
   },
-  // 模拟回调函数
+  // Mock callbacks
   args: {
     onSelect: fn(),
     onSwitch: fn(),
@@ -83,7 +83,7 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-// 示例 1: 默认状态（其他用户）
+// Example 1: Default state (other user)
 export const Default: Story = {
   args: {
     ...mockSessionItems[0],
@@ -91,8 +91,8 @@ export const Default: Story = {
   },
 };
 
-// 示例 2: 当前用户
-// 此时应该显示 "当前" 徽标，且操作按钮被禁用
+// Example 2: Current user
+// The card should show a "Current" badge and disable action buttons
 export const CurrentUser: Story = {
   args: {
     ...mockSessionItems[0],
@@ -100,8 +100,8 @@ export const CurrentUser: Story = {
   },
 };
 
-// 示例 3: 配额未知状态 (-1)
-// 进度条应该显示灰色或未知样式
+// Example 3: Unknown quota state (-1)
+// The progress bar should show a gray or unknown style
 export const UnknownUsage: Story = {
   args: {
     ...mockSessionItems[2],
@@ -109,7 +109,7 @@ export const UnknownUsage: Story = {
   },
 };
 
-// 示例 4: 额度即将耗尽
+// Example 4: High usage (quota nearly exhausted)
 export const HighUsage: Story = {
   args: {
     ...mockSessionItems[1],

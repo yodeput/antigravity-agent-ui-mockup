@@ -30,24 +30,24 @@ export interface AccountSessionListProps {
   onDelete: (user: AccountSessionListAccountItem) => void;
 }
 
-// 1. 父容器动画：控制子元素像多米诺骨牌一样依次出现
+// 1. Parent container animation: controls child elements to appear like dominoes
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
   show: {
     opacity: 1,
     transition: {
-      staggerChildren: 0.08, // 每个卡片间隔 0.08秒
-      delayChildren: 0.1     // 稍微等待一下再开始
+      staggerChildren: 0.08, // 0.08 second interval between each card
+      delayChildren: 0.1     // Wait a bit before starting
     }
   }
 };
 
-// 2. 子元素动画：定义单个卡片的进入/退出效果
+// 2. Child element animation: defines enter/exit effects for individual cards
 const itemVariants: Variants = {
   hidden: {
     opacity: 0,
-    y: 20,      // 初始位置向下偏 20px
-    scale: 0.95 // 初始稍微缩小一点
+    y: 20,      // Initial position 20px down
+    scale: 0.95 // Initially slightly smaller
   },
   show: {
     opacity: 1,
@@ -82,17 +82,17 @@ export function AccountSessionList({
       initial="hidden"
       animate="show"
     >
-      {/* 背景组件通常设为 absolute，不参与流式布局动画 */}
+      {/* Background component is usually set to absolute, not participating in flow layout animation */}
       <AnimatedGridPattern />
 
-      {/* AnimatePresence 用于处理元素被删除时的离场动画 */}
+      {/* AnimatePresence handles exit animations when elements are removed */}
       <AnimatePresence mode="popLayout">
         {accounts.map((account) => (
           <motion.div
             key={account.email}
-            layout // 关键：当有元素被删除时，其他元素会自动平滑移动填补空缺
-            variants={itemVariants} // 继承父级的 hidden/show 状态
-            className="z-10" // 确保在背景之上
+            layout // Key: when elements are removed, other elements automatically smooth-fill the gap
+            variants={itemVariants} // Inherits parent's hidden/show state
+            className="z-10" // Ensures it's above the background
           >
             <AccountSessionListCard
               geminiProQuote={account.geminiProQuote}
@@ -116,7 +116,7 @@ export function AccountSessionList({
         ))}
       </AnimatePresence>
 
-      {/* 空状态动画 */}
+      {/* Empty state animation */}
       {accounts.length === 0 && (
         <motion.div
           className="flex flex-col items-center justify-center py-12 px-6 text-center flex-1 z-10 w-full"
@@ -130,10 +130,10 @@ export function AccountSessionList({
             </svg>
           </div>
           <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
-            暂无账户信息
+            No Account Information
           </h3>
           <p className="text-sm text-gray-600 dark:text-gray-400 max-w-md leading-relaxed">
-            在 Antigravity 登录账户后，本程序会自动读取。
+            After signing in to an account in Antigravity, this app will automatically read it.
           </p>
         </motion.div>
       )}

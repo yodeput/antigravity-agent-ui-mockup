@@ -20,12 +20,12 @@ export function useUpdateChecker(autoCheck: boolean = true): UseUpdateCheckerRes
     const [error, setError] = useState<string | null>(null);
 
     /**
-     * 检查更新
+     * Check for updates
      */
     const checkForUpdates = useCallback(async () => {
         try {
             setError(null);
-            logger.info('正在检查更新', {
+            logger.info('Checking for updates', {
             module: 'UpdateChecker',
             action: 'check_start'
           });
@@ -33,7 +33,7 @@ export function useUpdateChecker(autoCheck: boolean = true): UseUpdateCheckerRes
             const info = await updateService.checkForUpdates();
 
             if (info) {
-                logger.info('发现新版本', {
+                logger.info('New version found', {
                 module: 'UpdateChecker',
                 action: 'update_found',
                 version: info.version
@@ -41,7 +41,7 @@ export function useUpdateChecker(autoCheck: boolean = true): UseUpdateCheckerRes
                 setUpdateInfo(info);
                 setUpdateState('update-available');
             } else {
-                logger.info('已是最新版本', {
+                logger.info('Already on latest version', {
                 module: 'UpdateChecker',
                 action: 'up_to_date'
               });
@@ -49,19 +49,19 @@ export function useUpdateChecker(autoCheck: boolean = true): UseUpdateCheckerRes
             }
         } catch (err) {
             const errorMsg = err instanceof Error ? err.message : String(err);
-            logger.error('检查更新失败', {
+            logger.error('Failed to check for updates', {
             module: 'UpdateChecker',
             action: 'check_failed',
             error: errorMsg
           });
             setError(errorMsg);
-            // 不设置错误状态，保持无更新状态，避免显示错误徽章
+            // Don't set error state, keep no-update state to avoid showing error badge
             setUpdateState('no-update');
         }
     }, []);
 
     /**
-     * 开始下载更新
+     * Start downloading update
      */
     const startDownload = useCallback(async () => {
         try {
@@ -76,40 +76,40 @@ export function useUpdateChecker(autoCheck: boolean = true): UseUpdateCheckerRes
             setUpdateState('ready-to-install');
         } catch (err) {
             const errorMsg = err instanceof Error ? err.message : String(err);
-            logger.error('下载更新失败', {
+            logger.error('Failed to download update', {
             module: 'UpdateChecker',
             action: 'download_failed',
             error: errorMsg
           });
             setError(errorMsg);
-            // 下载失败，恢复到更新可用状态，让用户可以重试
+            // Download failed, restore to update-available state so user can retry
             setUpdateState('update-available');
         }
     }, []);
 
     /**
-     * 安装更新并重启
+     * Install update and restart
      */
     const installAndRelaunch = useCallback(async () => {
         try {
             setError(null);
             await updateService.installAndRelaunch();
-            // 如果重启成功，这里的代码不会执行
+            // If restart succeeds, this code won't execute
         } catch (err) {
             const errorMsg = err instanceof Error ? err.message : String(err);
-            logger.error('安装更新失败', {
+            logger.error('Failed to install update', {
             module: 'UpdateChecker',
             action: 'install_failed',
             error: errorMsg
           });
             setError(errorMsg);
-            // 安装失败，恢复到准备安装状态，让用户可以重试
+            // Install failed, restore to ready-to-install state so user can retry
             setUpdateState('ready-to-install');
         }
     }, []);
 
     /**
-     * 忽略此次更新
+     * Dismiss this update
      */
     const dismissUpdate = useCallback(() => {
         updateService.clearPendingUpdate();
@@ -120,11 +120,11 @@ export function useUpdateChecker(autoCheck: boolean = true): UseUpdateCheckerRes
     }, []);
 
     /**
-     * 自动检查更新（应用启动时）
+     * Auto check for updates (on app startup)
      */
     useEffect(() => {
         if (autoCheck) {
-            // 延迟3秒后检查更新，避免影响应用启动速度
+            // Delay 3 seconds before checking updates to avoid affecting app startup speed
             const timer = setTimeout(() => {
                 checkForUpdates();
             }, 3000);

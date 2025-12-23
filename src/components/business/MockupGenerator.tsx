@@ -1,15 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Image, Sparkles, Loader2, Download } from 'lucide-react';
 import { BaseButton } from '@/components/base-ui/BaseButton';
 import { cn } from '@/lib/utils.ts';
+import { CloudCodeAPI } from '@/services/cloudcode-api';
+import { CloudCodeAPITypes } from '@/services/cloudcode-api.types';
+import { useCurrentAntigravityAccount } from '@/modules/use-antigravity-account';
+import { logger } from '@/lib/logger';
 
-// Model options for image generation
-const MODELS = [
-  { id: 'gemini-2.5-flash-image', name: 'Gemini 2.5 Flash Image' },
-  { id: 'gemini-3-pro-image', name: 'Gemini 3 Pro Image' },
-] as const;
-
-type ModelId = typeof MODELS[number]['id'];
+// Model option interface
+interface ModelOption {
+  id: string;
+  name: string;
+}
 
 // Aspect ratio options
 const ASPECT_RATIOS = [
@@ -64,13 +66,84 @@ interface GeneratedResult {
 }
 
 const MockupGenerator: React.FC<MockupGeneratorProps> = ({ className }) => {
-  const [selectedModel, setSelectedModel] = useState<ModelId>(MODELS[0].id);
+  const currentAccount = useCurrentAntigravityAccount();
+  
+  // Dynamic models state
+  const [models, setModels] = useState<ModelOption[]>([]);
+  const [isLoadingModels, setIsLoadingModels] = useState(false);
+  const [modelsError, setModelsError] = useState<string | null>(null);
+  
+  const [selectedModel, setSelectedModel] = useState<string>('');
   const [selectedAspectRatio, setSelectedAspectRatio] = useState<AspectRatioId>(ASPECT_RATIOS[0].id);
   const [selectedDesignLanguage, setSelectedDesignLanguage] = useState<DesignLanguageId>(DESIGN_LANGUAGES[0].id);
   const [prompt, setPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [result, setResult] = useState<GeneratedResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Fetch available models on mount
+  useEffect(() => {
+    const fetchModels = async () => {
+      if (!currentAccount?.auth?.access_token) {
+        setModelsError('No authenticated account found');
+        return;
+      }
+
+      setIsLoadingModels(true);
+      setModelsError(null);
+
+      try {
+        // First, get the project from loadCodeAssist
+        const codeAssistResponse = await CloudCodeAPI.loadCodeAssist(currentAccount.auth.access_token);
+        const project = codeAssistResponse.cloudaicompanionProject;
+
+        // Then fetch available models
+        const response = await CloudCodeAPI.fetchAvailableModels(
+          currentAccount.auth.access_token,
+          project
+        );
+
+        // Extract image generation models from the response
+        const imageModelIds = response.imageGenerationModelIds || [];
+        const modelOptions: ModelOption[] = imageModelIds.map((modelId: string) => {
+          // Try to get display name from models object
+          const modelData = response.models[modelId as keyof CloudCodeAPITypes.Models];
+          const displayName = modelData && 'displayName' in modelData 
+            ? modelData.displayName 
+            : modelId.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+          
+          return {
+            id: modelId,
+            name: displayName
+          };
+        });
+
+        setModels(modelOptions);
+        
+        // Set default selected model
+        if (modelOptions.length > 0 && !selectedModel) {
+          setSelectedModel(modelOptions[0].id);
+        }
+
+        logger.info('Fetched available image models', {
+          module: 'MockupGenerator',
+          modelCount: modelOptions.length,
+          models: modelOptions.map(m => m.id)
+        });
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Failed to fetch models';
+        setModelsError(errorMessage);
+        logger.error('Failed to fetch models', {
+          module: 'MockupGenerator',
+          error: errorMessage
+        });
+      } finally {
+        setIsLoadingModels(false);
+      }
+    };
+
+    fetchModels();
+  }, [currentAccount?.auth?.access_token]);
 
   const handleGenerate = async () => {
     if (!prompt.trim()) {
@@ -140,17 +213,32 @@ const MockupGenerator: React.FC<MockupGeneratorProps> = ({ className }) => {
           <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
             Model
           </label>
-          <select
-            value={selectedModel}
-            onChange={(e) => setSelectedModel(e.target.value as ModelId)}
-            className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-          >
-            {MODELS.map((model) => (
-              <option key={model.id} value={model.id}>
-                {model.name}
-              </option>
-            ))}
-          </select>
+          {isLoadingModels ? (
+            <div className="w-full px-3 py-2 text-sm text-gray-500 dark:text-gray-400">
+              Loading models...
+            </div>
+          ) : modelsError ? (
+            <div className="w-full px-3 py-2 text-sm text-red-500 dark:text-red-400">
+              {modelsError}
+            </div>
+          ) : (
+            <select
+              value={selectedModel}
+              onChange={(e) => setSelectedModel(e.target.value)}
+              className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+              disabled={models.length === 0}
+            >
+              {models.length === 0 ? (
+                <option value="">No models available</option>
+              ) : (
+                models.map((model) => (
+                  <option key={model.id} value={model.id}>
+                    {model.name}
+                  </option>
+                ))
+              )}
+            </select>
+          )}
         </div>
 
         {/* Aspect Ratio Options */}
@@ -265,7 +353,7 @@ const MockupGenerator: React.FC<MockupGeneratorProps> = ({ className }) => {
                 className="max-w-full max-h-full object-contain rounded-lg shadow-lg"
               />
               <div className="mt-4 text-xs text-gray-500 dark:text-gray-400 text-center">
-                <p>Model: {MODELS.find(m => m.id === result.model)?.name}</p>
+                <p>Model: {models.find(m => m.id === result.model)?.name || result.model}</p>
                 <p>Design: {DESIGN_LANGUAGES.find(d => d.id === result.designLanguage)?.name}</p>
                 <p>Generated at: {result.timestamp.toLocaleTimeString()}</p>
               </div>

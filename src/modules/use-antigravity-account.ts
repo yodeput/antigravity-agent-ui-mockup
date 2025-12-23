@@ -4,10 +4,10 @@ import {AccountCommands} from '@/commands/AccountCommands.ts';
 import type {AntigravityAccount} from '@/commands/types/account.types.ts';
 import {AccountManageCommands} from "@/commands/AccountManageCommands.ts";
 
-// 常量定义
-const FILE_WRITE_DELAY_MS = 500; // 等待文件写入完成的延迟时间
+// Constants
+const FILE_WRITE_DELAY_MS = 500; // delay to wait for file writes to complete
 
-// Store 状态
+// Store state
 export interface AntigravityAccountState {
   accounts: AntigravityAccount[];
   currentAuthInfo: AntigravityAccount | null;
@@ -15,34 +15,34 @@ export interface AntigravityAccountState {
 
 // Store Actions
 export interface AntigravityAccountActions {
-  // 基础操作
+  // Basic operations
   delete: (email: string) => Promise<void>;
   insertOrUpdateCurrentAccount: () => Promise<void>;
   switchToAccount: (email: string) => Promise<void>;
 
-  // 批量操作
+  // Batch operations
   clearAllAccounts: () => Promise<void>;
 
-  // 查询
+  // Queries
   getAccounts: () => Promise<AntigravityAccount[]>;
 }
 
-// 创建 Store
+// Create store
 export const useAntigravityAccount = create<AntigravityAccountState & AntigravityAccountActions>()((set, get) => ({
-  // 初始状态
+  // Initial state
   accounts: [],
   currentAuthInfo: null,
 
-  // ============ 基础操作 ============
+  // ============ Basic operations ============
   delete: async (email: string): Promise<void> => {
     try {
       await AccountManageCommands.deleteBackup(email);
 
-      // 删除成功后重新获取数据
+      // Refresh data after successful deletion
       const accounts = await AccountCommands.getAntigravityAccounts();
       set({ accounts: accounts });
     } catch (error) {
-      logger.error('用户删除失败', {
+      logger.error('Failed to delete user', {
         module: 'UserManagement',
         email,
         error: error instanceof Error ? error.message : String(error)
@@ -53,27 +53,27 @@ export const useAntigravityAccount = create<AntigravityAccountState & Antigravit
 
   insertOrUpdateCurrentAccount: async (): Promise<void> => {
     try {
-      // 1. 获取当前 Antigravity 用户信息
+      // 1. Get current Antigravity account info
       const currentInfo = await AccountCommands.getCurrentAntigravityAccount();
-      // 2. 检查是否有有效的用户信息（通过API Key或用户状态判断）
+      // 2. Check whether there is valid account info (via API key or auth status)
       if (currentInfo?.auth.access_token) {
-        // 3. 执行备份操作
+        // 3. Perform backup operation
         await AccountCommands.saveAntigravityCurrentAccount();
 
-        // 4. 等待文件写入完成
+        // 4. Wait for file write to complete
         await new Promise(resolve => setTimeout(resolve, FILE_WRITE_DELAY_MS));
 
-        // 5. 重新获取用户列表
+        // 5. Re-fetch account list
         const accounts = await AccountCommands.getAntigravityAccounts();
         set({ accounts });
 
-        // 6. 更新当前认证信息
+        // 6. Update current auth info
         set({currentAuthInfo: currentInfo});
       } else {
-        throw new Error('未检测到有效的账户信息');
+        throw new Error('No valid account information detected');
       }
     } catch (error) {
-      logger.error('备份当前用户失败', {
+      logger.error('Failed to backup current user', {
         module: 'UserManagement',
         error: error instanceof Error ? error.message : String(error)
       });
@@ -83,10 +83,10 @@ export const useAntigravityAccount = create<AntigravityAccountState & Antigravit
 
   switchToAccount: async (email: string): Promise<void> => {
     try {
-      // 调用后端切换用户命令
+      // Call backend to switch account
       await AccountCommands.switchToAntigravityAccount(email);
     } catch (error) {
-      logger.error('切换用户失败', {
+      logger.error('Failed to switch user', {
         module: 'UserManagement',
         email,
         error: error instanceof Error ? error.message : String(error)
@@ -95,31 +95,31 @@ export const useAntigravityAccount = create<AntigravityAccountState & Antigravit
     }
   },
 
-  // ============ 批量操作 ============
+  // ============ Batch operations ============
 
   clearAllAccounts: async (): Promise<void> => {
-    // 调用清空所有备份的命令
+    // Call command to clear all backups
     await AccountManageCommands.clearAllBackups();
-    // 清空成功后重新获取数据
+    // Refresh data after clearing
     const accounts = await AccountCommands.getAntigravityAccounts();
     set({ accounts: accounts });
   },
 
-  // ============ 查询 ============
+  // ============ Queries ============
   getAccounts: async (): Promise<AntigravityAccount[]> => {
     try {
-      // 从后端获取账户列表
+      // Fetch account list from backend
       const accounts = await AccountCommands.getAntigravityAccounts();
 
-      // 同步更新 store 中的状态
+      // Update store state
       set({ accounts });
       return accounts;
     } catch (error) {
-      logger.error('获取用户列表失败', {
+      logger.error('Failed to fetch user list', {
         module: 'UserManagement',
         error: error instanceof Error ? error.message : String(error)
       });
-      // 如果读取失败，返回当前 store 中的用户
+      // If fetch fails, return current store accounts
       return get().accounts;
     }
   },

@@ -4,7 +4,7 @@ import {EventEmitter} from 'events';
 import {logger} from '../lib/logger.ts';
 import {DbMonitorCommands} from "@/commands/DbMonitorCommands.ts";
 
-// 数据库变化事件数据接口
+// Database change event data interface
 export interface DatabaseChangeEvent {
     timestamp: number;
     old_data?: any;
@@ -13,65 +13,65 @@ export interface DatabaseChangeEvent {
     originalEvent?: any;
 }
 
-// 导出事件相关类型
+// Export event related types
 export type { DatabaseEventMap, DatabaseEventListener };
 
-// 全局数据库事件发射器
+// Global database event emitter
 const databaseEventEmitter = new EventEmitter();
 
-// 全局 unlistenFn 变量
+// Global unlistenFn variable
 let globalUnlistenFn: UnlistenFn | null = null;
 
-// 数据库事件类型
+// Database event types
 export const DATABASE_EVENTS = {
   DATA_CHANGED: 'database:data-changed',
 } as const;
 
-// 事件类型映射
+// Event type mapping
 type DatabaseEventMap = {
   [DATABASE_EVENTS.DATA_CHANGED]: DatabaseChangeEvent;
 };
 
-// 事件监听器类型
+// Event listener type
 type DatabaseEventListener<T extends keyof DatabaseEventMap> = (data: DatabaseEventMap[T]) => void;
 
-// 操作接口 - 简化版，移除了设置管理
+// Actions interface - simplified version, removed settings management
 interface DbMonitoringActions {
-  // 初始化监控（启动时调用）
+  // Initialize monitoring (called on startup)
   start: () => Promise<void>;
 
-  // 停止监听（清理资源）
+  // Stop listening (cleanup resources)
   stop: () => Promise<void>;
 
-  // 添加事件监听器
+  // Add event listener
   addListener: <T extends keyof DatabaseEventMap>(
     event: T,
     listener: DatabaseEventListener<T>
   ) => (() => void);
 }
 
-// 创建 Store
+// Create Store
 export const useDbMonitoringStore = create<DbMonitoringActions>()(
   (set, get) => ({
-      // 初始化监控（应用启动时调用）
+      // Initialize monitoring (called on app startup)
       start: async (): Promise<void> => {
-        logger.info('初始化数据库监控', { module: 'DbMonitoringStore' });
+        logger.info('Initializing database monitoring', { module: 'DbMonitoringStore' });
 
         try {
-          // 清理之前的监听器
+          // Cleanup previous listener
           await get().stop();
 
-          // 处理数据库变化事件
+          // Handle database change event
           const handleDatabaseChange = async (event: any) => {
-            logger.info('接收到数据库变化事件', {
+            logger.info('Received database change event', {
               module: 'DbMonitoringStore',
               eventId: event.id || 'unknown'
             });
 
-            // 解析事件数据：newData, oldData, diff
+            // Parse event data: newData, oldData, diff
             const { newData, oldData, diff } = event.payload;
 
-            // 发射内部数据库变化事件
+            // Emit internal database change event
             databaseEventEmitter.emit(DATABASE_EVENTS.DATA_CHANGED, {
               timestamp: Date.now(),
               newData,
@@ -80,39 +80,39 @@ export const useDbMonitoringStore = create<DbMonitoringActions>()(
               originalEvent: event
             });
 
-            logger.info('数据库变化事件已发射', {
+            logger.info('Database change event emitted', {
               module: 'DbMonitoringStore'
             });
           };
 
-          // 监听后端推送的数据库变化事件
+          // Listen for database change events pushed from backend
           globalUnlistenFn = await listen('database-changed', handleDatabaseChange);
 
-          // 启动后端监控
+          // Start backend monitoring
           await DbMonitorCommands.start();
 
-          logger.info('数据库监控已启动', {
+          logger.info('Database monitoring started', {
             module: 'DbMonitoringStore'
           });
         } catch (error) {
-          logger.error('启动数据库监控失败', {
+          logger.error('Failed to start database monitoring', {
             module: 'DbMonitoringStore',
             error: error instanceof Error ? error.message : String(error)
           });
         }
       },
 
-      // 清理资源
+      // Cleanup resources
       stop: async (): Promise<void> => {
         if (globalUnlistenFn) {
           try {
             await globalUnlistenFn();
             globalUnlistenFn = null;
-            logger.info('数据库监听器已清理', {
+            logger.info('Database listener cleaned up', {
               module: 'DbMonitoringStore'
             });
           } catch (error) {
-            logger.warn('清理数据库监听器失败', {
+            logger.warn('Failed to cleanup database listener', {
               module: 'DbMonitoringStore',
               error: error instanceof Error ? error.message : String(error)
             });
@@ -126,7 +126,7 @@ export const useDbMonitoringStore = create<DbMonitoringActions>()(
       ): (() => void) => {
         databaseEventEmitter.on(event, listener);
 
-        // 返回取消订阅函数
+        // Return unsubscribe function
         return () => {
           databaseEventEmitter.off(event, listener);
         };

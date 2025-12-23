@@ -21,14 +21,14 @@ const BusinessUserDetail: React.FC<BusinessUserDetailProps> = ({
 }) => {
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
-  // 复制到剪贴板功能
+  // Copy to clipboard function
   const copyToClipboard = async (text: string, fieldName: string) => {
     try {
       await navigator.clipboard.writeText(account[fieldName]);
       setCopiedField(fieldName);
       setTimeout(() => setCopiedField(null), 2000);
     } catch (error) {
-      logger.error('复制失败', {
+      logger.error('Copy failed', {
         module: 'UserDetail',
         action: 'copy_failed',
         error: error instanceof Error ? error.message : String(error)
@@ -62,7 +62,7 @@ const BusinessUserDetail: React.FC<BusinessUserDetailProps> = ({
           "bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-md px-3 py-2 text-sm text-gray-600 dark:text-gray-400 break-all select-all transition-colors group-hover:border-gray-300 dark:group-hover:border-gray-700",
           isMultiline ? "min-h-[60px] whitespace-pre-wrap font-mono" : "font-mono"
         )}>
-          {value || '未设置'}
+          {value || 'Not set'}
         </div>
         {copyable && value && (
           <BaseButton
@@ -70,7 +70,7 @@ const BusinessUserDetail: React.FC<BusinessUserDetailProps> = ({
             size="icon"
             className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
             onClick={() => copyToClipboard(value, fieldName)}
-            title="复制"
+            title="Copy"
           >
             {copiedField === fieldName ? (
               <Check className="h-3.5 w-3.5 text-green-600" />
@@ -93,7 +93,7 @@ const BusinessUserDetail: React.FC<BusinessUserDetailProps> = ({
     >
       {<div className={"flex flex-row items-center gap-0.5"}>
         <User className="h-4 w-4 text-gray-500"/>
-        <span>用户详情</span>
+        <span>User Details</span>
       </div>}
       <div className="p-5 space-y-6 max-h-[70vh] overflow-y-auto">
         {/* 用户头像和基本信息 */}

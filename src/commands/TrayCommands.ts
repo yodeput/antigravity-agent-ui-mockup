@@ -1,20 +1,20 @@
 import { invoke } from '@tauri-apps/api/core';
 
 /**
- * 系统托盘命令
+ * System Tray Commands
  */
 export class TrayCommands {
   /**
-   * 最小化窗口到托盘
-   * @returns 最小化结果消息
+   * Minimize window to tray
+   * @returns Minimize result message
    */
   static async minimize(): Promise<string> {
     return invoke('minimize_to_tray');
   }
 
   /**
-   * 从托盘恢复窗口
-   * @returns 恢复结果消息
+   * Restore window from tray
+   * @returns Restore result message
    */
   static async restore(): Promise<string> {
     return invoke('restore_from_tray');
@@ -22,9 +22,9 @@ export class TrayCommands {
 
   
   /**
-   * 更新托盘菜单
-   * @param accounts 账户邮箱列表
-   * @returns 更新结果消息
+   * Update tray menu
+   * @param accounts Account email list
+   * @returns Update result message
    */
   static async updateMenu(accounts: string[]): Promise<string> {
     return invoke('update_tray_menu_command', { accounts });

@@ -1,4 +1,4 @@
-﻿// CloudCode API 服务命名空间
+﻿// CloudCode API Service Namespace
 export namespace CloudCodeAPITypes {
 
   export interface ErrorResponse {
@@ -366,8 +366,8 @@ export namespace CloudCodeAPITypes {
     access_token: string;
     expires_in: number;
     scope: string;
-    token_type: string; // 或者写成字面量类型 'Bearer'
-    id_token: string;   // 这是一个 JWT (Json Web Token)
+    token_type: string; // Or use literal type 'Bearer'
+    id_token: string;   // This is a JWT (Json Web Token)
   }
 
   export interface UserInfoResponse {

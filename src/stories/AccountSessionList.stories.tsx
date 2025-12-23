@@ -12,7 +12,7 @@ const meta = {
   title: 'Business/AccountSessionList',
   component: AccountSessionList,
   parameters: {
-    // 使用 padded 布局，这样列表不会紧贴边缘，更接近真实页面效果
+    // Use padded layout so the list isn't flush to the edges and looks closer to real pages
     layout: 'padded',
     backgrounds: {
       default: 'light-gray',
@@ -25,16 +25,16 @@ const meta = {
   tags: ['autodocs'],
   argTypes: {
     accounts: {
-      description: '用户账户列表',
+      description: 'List of user accounts',
       control: 'object',
     },
     currentUserEmail: {
-      description: '当前登录用户的 Email',
+      description: 'Email of the currently signed-in user',
       control: 'text',
     },
   },
   args: {
-    // 模拟事件回调
+    // Mock event callbacks
     onSelect: fn(),
     onSwitch: fn(),
     onDelete: fn(),
@@ -47,8 +47,8 @@ type Story = StoryObj<typeof meta>;
 // --- Stories ---
 
 /**
- * 默认状态：展示列表数据。
- * 注意：邮箱和昵称应该会被组件内的 mask 工具自动脱敏。
+ * Default state: displays list data.
+ * Note: emails and display names should be masked by the component's masking utility.
  */
 export const Default: Story = {
   render: (args) => {
@@ -61,8 +61,8 @@ export const Default: Story = {
 };
 
 /**
- * 高亮当前用户：
- * currentUserEmail 命中某个账号时，该卡片应显示“当前”徽标并禁用操作。
+ * Highlight current user:
+ * When `currentUserEmail` matches an account, that card should show a "Current" badge and disable actions.
  */
 export const WithCurrentUser: Story = {
   render: (args) => {
@@ -76,8 +76,8 @@ export const WithCurrentUser: Story = {
 };
 
 /**
- * 空状态：
- * 当 accounts 为空数组时，应该显示 SVG 图标和提示文案。
+ * Empty state:
+ * When `accounts` is an empty array, show an SVG illustration and a helper message.
  */
 export const EmptyState: Story = {
   render: (args) => {
@@ -90,8 +90,8 @@ export const EmptyState: Story = {
 };
 
 /**
- * 大数据量布局测试：
- * 用于测试 flex-wrap 是否正常工作，以及卡片间距是否合适。
+ * Large dataset layout test:
+ * Used to verify that `flex-wrap` works and that card spacing is appropriate.
  */
 export const GridWrapLayout: Story = {
   render: (args) => {
@@ -105,8 +105,8 @@ export const GridWrapLayout: Story = {
 };
 
 /**
- * 过长邮箱/昵称：
- * 用于复现 header 文本溢出问题（privateMode=false 显示全量文本）。
+ * Long email/display name:
+ * Used to reproduce header text overflow issues (when `privateMode=false` full text is shown).
  */
 export const LongEmailOverflow: Story = {
   render: (args) => {

@@ -5,15 +5,15 @@ const meta = {
   title: 'Base UI/Avatar',
   component: Avatar,
   parameters: {
-    layout: 'centered',
+      description: 'Avatar size (px)',
     backgrounds: {
       default: 'dark',
       values: [
-        { name: 'dark', value: '#0f172a' },
+      description: 'Avatar image URL; when empty shows gradient placeholder + initial',
         { name: 'light', value: '#f8fafc' },
       ],
     },
-  },
+      description: 'Alt text for the img element; does not affect fallback icon',
   tags: ['autodocs'],
   argTypes: {
     size: {
@@ -31,7 +31,7 @@ const meta = {
   },
   args: {
     size: 48,
-  },
+    alt: 'No Source', // Will display built-in gradient avatar icon
 } satisfies Meta<typeof Avatar>;
 
 export default meta;

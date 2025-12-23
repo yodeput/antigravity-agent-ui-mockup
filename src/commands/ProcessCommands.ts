@@ -1,12 +1,12 @@
 import {invoke} from '@tauri-apps/api/core';
 
 /**
- * 进程管理命令
+ * Process Management Commands
  */
 export class ProcessCommands {
   /**
-   * 检查 Antigravity 进程是否正在运行
-   * @returns 是否正在运行
+   * Check if Antigravity process is running
+   * @returns Whether it is running
    */
   static async isRunning(): Promise<boolean> {
     return invoke('is_antigravity_running');

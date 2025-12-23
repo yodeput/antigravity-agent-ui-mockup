@@ -26,14 +26,14 @@ class UpdateService {
     private pendingUpdate: Update | null = null;
 
     /**
-     * 检查是否有可用更新
+     * Check if updates are available
      */
     async checkForUpdates(): Promise<UpdateInfo | null> {
         try {
             const update = await check();
 
             if (update === null) {
-                logger.info('没有可用更新', {
+                logger.info('No updates available', {
                 module: 'UpdateService',
                 action: 'no_update_available'
               });
@@ -49,24 +49,24 @@ class UpdateService {
                 body: update.body || '',
             };
         } catch (error) {
-            logger.error('检查更新失败', {
+            logger.error('Failed to check for updates', {
                 module: 'UpdateService',
                 action: 'check_failed',
                 error: error
               });
-            throw new Error(`检查更新失败: ${error}`);
+            throw new Error(`Failed to check for updates: ${error}`);
         }
     }
 
     /**
-     * 下载更新包
-     * @param onProgress 进度回调
+     * Download update package
+     * @param onProgress Progress callback
      */
     async downloadUpdate(
         onProgress: (progress: DownloadProgress) => void
     ): Promise<void> {
         if (!this.pendingUpdate) {
-            throw new Error('没有待下载的更新');
+            throw new Error('No pending update to download');
         }
 
         let downloaded = 0;
@@ -77,7 +77,7 @@ class UpdateService {
                 switch (event.event) {
                     case 'Started':
                         total = event.data.contentLength || 0;
-                        logger.info('开始下载', {
+                        logger.info('Download started', {
                         module: 'UpdateService',
                         action: 'download_started',
                         totalBytes: total
@@ -88,7 +88,7 @@ class UpdateService {
                     case 'Progress':
                         downloaded += event.data.chunkLength;
                         const percentage = total > 0 ? Math.round((downloaded / total) * 100) : 0;
-                        logger.debug('下载进度', {
+                        logger.debug('Download progress', {
                         module: 'UpdateService',
                         action: 'download_progress',
                         downloaded,
@@ -99,7 +99,7 @@ class UpdateService {
                         break;
 
                     case 'Finished':
-                        logger.info('下载完成', {
+                        logger.info('Download completed', {
                         module: 'UpdateService',
                         action: 'download_completed',
                         totalBytes: total
@@ -109,51 +109,51 @@ class UpdateService {
                 }
             });
         } catch (error) {
-            logger.error('下载更新失败', {
+            logger.error('Failed to download update', {
                 module: 'UpdateService',
                 action: 'download_failed',
                 error: error
               });
-            throw new Error(`下载更新失败: ${error}`);
+            throw new Error(`Failed to download update: ${error}`);
         }
     }
 
     /**
-     * 安装更新并重启应用
+     * Install update and restart application
      */
     async installAndRelaunch(): Promise<void> {
         if (!this.pendingUpdate) {
-            throw new Error('没有待安装的更新');
+            throw new Error('No pending update to install');
         }
 
         try {
-            logger.info('开始安装更新', {
+            logger.info('Starting update installation', {
                 module: 'UpdateService',
                 action: 'install_started'
               });
             await this.pendingUpdate.install();
 
-            logger.info('安装完成，准备重启', {
+            logger.info('Installation completed, preparing to restart', {
                 module: 'UpdateService',
                 action: 'install_completed'
               });
-            // 等待一小段时间确保安装完成
+            // Wait a short time to ensure installation is complete
             await new Promise(resolve => setTimeout(resolve, 500));
 
-            // 重启应用
+            // Restart application
             await relaunch();
         } catch (error) {
-            logger.error('安装更新失败', {
+            logger.error('Failed to install update', {
                 module: 'UpdateService',
                 action: 'install_failed',
                 error: error
               });
-            throw new Error(`安装更新失败: ${error}`);
+            throw new Error(`Failed to install update: ${error}`);
         }
     }
 
     /**
-     * 清除待处理的更新
+     * Clear pending update
      */
     clearPendingUpdate(): void {
         this.pendingUpdate = null;

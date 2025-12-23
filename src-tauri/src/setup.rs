@@ -3,109 +3,109 @@ use std::sync::Arc;
 use tauri::{App, Manager};
 
 pub fn init(app: &mut App) -> std::result::Result<(), Box<dyn std::error::Error>> {
-    tracing::info!(target: "app::setup", "开始应用程序设置");
+    tracing::info!(target: "app::setup", "Starting application setup");
 
-    // 初始化应用设置管理器
+    // Initialize app settings manager
     let app_handle = app.handle();
     app.manage(app_settings::AppSettingsManager::new(app_handle));
 
-    // 初始化系统托盘管理器
+    // Initialize system tray manager
     app.manage(system_tray::SystemTrayManager::new());
 
-    // Tracing 日志记录器已在 main 函数中初始化，这里跳过
+    // Tracing logger is initialized in main(), skip here
 
-    // 在 release 模式下禁用右键菜单
+    // Disable context menu in release builds
     #[cfg(not(debug_assertions))]
     {
         if let Some(window) = app.get_webview_window("main") {
-            // Tauri 2.x 中禁用上下文菜单需要通过eval执行JavaScript
+            // Disabling the context menu in Tauri 2.x requires eval'ing JavaScript
             let _ = window.eval("window.addEventListener('contextmenu', e => e.preventDefault());");
         }
     }
 
-    // 初始化数据库监控器
+    // Initialize database monitor
     let db_monitor = Arc::new(db_monitor::DatabaseMonitor::new(app.handle().clone()));
     app.manage(db_monitor.clone());
 
-    // 数据库监控将在前端通过命令启动，避免在 setup 中使用 tokio::spawn
-    tracing::debug!(target: "app::setup::db_monitor", "数据库监控将根据前端设置自动启动");
+    // Database monitoring will be started via a frontend command; avoid tokio::spawn in setup
+    tracing::debug!(target: "app::setup::db_monitor", "Database monitor will auto-start based on frontend settings");
 
-    tracing::info!(target: "app::setup::db_monitor", "数据库监控器初始化完成");
+    tracing::info!(target: "app::setup::db_monitor", "Database monitor initialized");
 
-    // 初始化窗口事件处理器
+    // Initialize window event handler
     if let Err(e) = window::init_window_event_handler(app) {
-        tracing::error!(target: "app::setup::window", error = %e, "窗口事件处理器初始化失败");
+        tracing::error!(target: "app::setup::window", error = %e, "Window event handler initialization failed");
     } else {
-        tracing::info!(target: "app::setup::window", "窗口事件处理器初始化完成");
+        tracing::info!(target: "app::setup::window", "Window event handler initialized");
     }
 
-    // 检查静默启动设置
+    // Check silent-start settings
     let settings_manager = app.state::<app_settings::AppSettingsManager>();
     let settings = settings_manager.get_settings();
 
-    // 根据设置决定是否创建系统托盘
+    // Decide whether to create a system tray based on settings
     if settings.system_tray_enabled {
-        tracing::info!(target: "app::setup::tray", "系统托盘已启用，正在创建托盘");
+        tracing::info!(target: "app::setup::tray", "System tray enabled, creating tray");
         let system_tray = app.state::<system_tray::SystemTrayManager>();
         if let Err(e) = system_tray.enable(app.handle()) {
-            tracing::error!(target: "app::setup::tray", error = %e, "启动时创建系统托盘失败");
+            tracing::error!(target: "app::setup::tray", error = %e, "Failed to create system tray on startup");
         } else {
-            tracing::info!(target: "app::setup::tray", "系统托盘已创建");
+            tracing::info!(target: "app::setup::tray", "System tray created");
         }
     } else {
-        tracing::info!(target: "app::setup::tray", "系统托盘已禁用，跳过创建");
+        tracing::info!(target: "app::setup::tray", "System tray disabled, skipping creation");
     }
 
-    // 双重检查：如果静默启动但未启用系统托盘，这是不允许的
+    // Double-check: silent-start without system tray is not allowed
     if settings.silent_start_enabled && !settings.system_tray_enabled {
         tracing::warn!(
             target: "app::setup::silent_start",
-            "检测到危险配置：静默启动已启用但系统托盘未启用。自动禁用静默启动以确保安全。"
+            "Dangerous configuration detected: silent-start enabled but system tray disabled. Disabling silent-start automatically for safety."
         );
 
-        // 自动修正这个配置
+        // Auto-correct this configuration
         if let Err(e) = settings_manager.update_settings(|s| {
             s.silent_start_enabled = false;
         }) {
             tracing::error!(
                 target: "app::setup::silent_start",
                 error = %e,
-                "自动修正设置失败"
+                "Failed to auto-correct settings"
             );
         }
 
-        tracing::info!(target: "app::setup::silent_start", "已禁用静默启动，正常显示窗口");
+        tracing::info!(target: "app::setup::silent_start", "Silent start disabled; showing window normally");
     } else if settings.silent_start_enabled && settings.system_tray_enabled {
-        tracing::info!(target: "app::setup::silent_start", "静默启动模式已启用（系统托盘已启用），准备隐藏主窗口");
+        tracing::info!(target: "app::setup::silent_start", "Silent start enabled (system tray enabled), preparing to hide main window");
 
         // 延迟执行静默启动，确保在窗口状态恢复完成后隐藏窗口
         let app_handle_for_silent = app.handle().clone();
 
         tauri::async_runtime::spawn(async move {
-            // 等待1.5秒，确保窗口状态恢复和其他初始化都完成
+            // Wait 1.5 seconds to ensure window state restoration and other initialization complete
             tokio::time::sleep(tokio::time::Duration::from_millis(1500)).await;
 
-            tracing::debug!(target: "app::setup::silent_start", "执行静默启动窗口隐藏操作");
+            tracing::debug!(target: "app::setup::silent_start", "Performing silent start window hide operation");
 
             if let Some(main_window) = app_handle_for_silent.get_webview_window("main") {
-                // 隐藏窗口
+                // Hide window
                 match main_window.hide() {
                     Ok(()) => {
-                        tracing::info!(target: "app::setup::silent_start", "静默启动：窗口已隐藏");
-                        tracing::info!(target: "app::setup::silent_start", "可通过系统托盘图标访问应用");
+                        tracing::info!(target: "app::setup::silent_start", "Silent start: window hidden");
+                        tracing::info!(target: "app::setup::silent_start", "Application can be accessed via system tray icon");
                     }
                     Err(e) => {
-                        tracing::error!(target: "app::setup::silent_start", error = %e, "静默启动隐藏窗口失败");
+                        tracing::error!(target: "app::setup::silent_start", error = %e, "Failed to hide window for silent start");
                     }
                 }
             } else {
-                tracing::error!(target: "app::setup::silent_start", "无法获取主窗口进行静默启动");
+                tracing::error!(target: "app::setup::silent_start", "Unable to obtain main window for silent start");
             }
         });
     } else {
-        tracing::debug!(target: "app::setup::silent_start", "静默启动未启用，正常显示窗口");
+        tracing::debug!(target: "app::setup::silent_start", "Silent start not enabled, showing window normally");
     }
 
-    tracing::info!(target: "app::setup", "应用程序设置完成");
+    tracing::info!(target: "app::setup", "Application setup complete");
     Ok(())
 }

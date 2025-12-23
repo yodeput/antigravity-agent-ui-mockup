@@ -1,14 +1,14 @@
 ﻿import {fetch} from '@tauri-apps/plugin-http'
 import {CloudCodeAPITypes} from "@/services/cloudcode-api.types.ts";
 
-// HTTP 客户端配置
+// HTTP client configuration
 interface HTTPConfig {
   baseURL: string;
   headers: Record<string, string>;
 }
 
 const HTTP_CONFIG: HTTPConfig = {
-  baseURL: 'https://daily-cloudcode-pa.sandbox.googleapis.com', // 默认使用沙盒环境
+  baseURL: 'https://daily-cloudcode-pa.sandbox.googleapis.com', // default to sandbox environment
   headers: {
     "User-Agent": "antigravity/windows/amd64",
     "Content-Type": "application/json",
@@ -35,7 +35,7 @@ const post = async <T>(endpoint: string, data: any, options?: RequestInit): Prom
 }
 
 
-// CloudCode API 服务命名空间
+// CloudCode API service namespace
 export namespace CloudCodeAPI {
 
   export async function fetchAvailableModels(

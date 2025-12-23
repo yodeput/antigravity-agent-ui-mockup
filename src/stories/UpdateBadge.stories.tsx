@@ -55,7 +55,7 @@ export const ErrorState: Story = {
   args: {
     state: 'update-available',
     updateInfo: sampleInfo,
-    error: '网络异常，请稍后重试。',
+    error: 'Network error, please try again later.',
   },
 };
 

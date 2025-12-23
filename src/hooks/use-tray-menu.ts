@@ -6,38 +6,38 @@ import {TrayCommands} from "@/commands/TrayCommands.ts";
 import toast from "react-hot-toast";
 
 /**
- * 系统托盘菜单更新 Hook
- * 负责监听账户变化并更新托盘菜单
+ * System Tray Menu Update Hook
+ * Responsible for listening to account changes and updating tray menu
  */
 export function useTrayMenu() {
   const { accounts, switchToAccount } = useAntigravityAccount();
 
-  // 更新托盘菜单
+  // Update tray menu
   const updateTrayMenu = async (accounts: string[]) => {
     try {
-      logger.info("更新托盘菜单", { accountCount: accounts.length });
+      logger.info("Updating tray menu", { accountCount: accounts.length });
 
       await TrayCommands.updateMenu(accounts);
 
-      logger.info("托盘菜单更新成功");
+      logger.info("Tray menu updated successfully");
     } catch (error) {
-      logger.error("更新托盘菜单失败", error);
-      // 不显示 toast 错误，因为这可能在后台发生
+      logger.error("Failed to update tray menu", error);
+      // Don't show toast error as this may happen in background
     }
   };
 
-  // 监听来自后端的账户切换请求
+  // Listen for account switch requests from backend
   useEffect(() => {
     const unlisten = listen("tray-switch-account", async (event) => {
       const email = event.payload as string;
-      logger.info("收到托盘账户切换请求", { email });
+      logger.info("Received tray account switch request", { email });
 
       try {
         await switchToAccount(email);
-        toast.success(`已切换到账户: ${email}`);
+        toast.success(`Switched to account: ${email}`);
       } catch (error) {
-        logger.error("托盘账户切换失败", error);
-        toast.error(`切换账户失败: ${error}`);
+        logger.error("Tray account switch failed", error);
+        toast.error(`Failed to switch account: ${error}`);
       }
     });
 
@@ -46,14 +46,14 @@ export function useTrayMenu() {
     };
   }, []);
 
-  // 当账户列表变化时更新托盘菜单
+  // Update tray menu when account list changes
   useEffect(() => {
     if (accounts.length > 0) {
-      // 提取邮箱列表并更新托盘菜单
+      // Extract email list and update tray menu
       const emails = accounts.map((user) => user.context.email);
       updateTrayMenu(emails);
     } else {
-      // 没有账户时清空托盘菜单
+      // Clear tray menu when no accounts
       updateTrayMenu([]);
     }
   }, [accounts]);

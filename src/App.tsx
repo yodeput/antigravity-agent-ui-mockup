@@ -12,34 +12,34 @@ import {PlatformCommands} from "@/commands/PlatformCommands.ts";
 import {useAppSettings} from "@/modules/use-app-settings.ts";
 
 function App() {
-  // ========== 应用状态 ==========
+  // ========== Application State ==========
   const [isDetecting, setIsDetecting] = useState(true);
 
-  // ========== Hook 集成 ==========
+  // ========== Hook Integration ==========
   useDevToolsShortcut();
   const hydrateAppSettings = useAppSettings(state => state.hydrate);
 
-  // 用户管理
+  // User management
   const antigravityAccount = useAntigravityAccount();
 
-  // 监听数据库变化事件
+  // Listen for database change events
   const dbMonitoringActions = useDbMonitoringStore();
 
   useEffect(() => {
-    // 初始化监控（自动启动）
+    // Initialize monitoring (auto-start)
     dbMonitoringActions.start();
 
-    // 添加事件监听器
+    // Add event listener
     const unlisten = dbMonitoringActions.addListener(DATABASE_EVENTS.DATA_CHANGED, antigravityAccount.insertOrUpdateCurrentAccount);
 
-    // 组件卸载时移除监听器
+    // Remove listener on component unmount
     return () => {
       unlisten()
       dbMonitoringActions.stop()
     };
   }, []);
 
-  // 启动 Antigravity 进程状态自动检查
+  // Start Antigravity process status auto-check
   const antigravityIsRunning = useAntigravityIsRunning();
 
   useEffect(() => {
@@ -49,7 +49,7 @@ function App() {
     return () => antigravityIsRunning.stop();
   }, []);
 
-  // ========== 初始化启动流程 ==========
+  // ========== Initialization Flow ==========
   const initializeApp = async () => {
     try {
       await PlatformCommands.detectInstallation()
@@ -60,7 +60,7 @@ function App() {
     }
   };
 
-  // 组件启动时执行初始化
+  // Execute initialization on component mount
   useEffect(() => {
     initializeApp();
   }, []);
@@ -69,7 +69,7 @@ function App() {
     hydrateAppSettings();
   }, []);
 
-  // ========== 渲染逻辑 ==========
+  // ========== Render Logic ==========
   if (isDetecting) {
     return (
       <div
@@ -77,10 +77,10 @@ function App() {
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 mx-auto mb-6 text-blue-500"></div>
           <h2 className="text-2xl font-semibold mb-2 text-gray-800 dark:text-gray-100">
-            正在检测 Antigravity 数据库...
+            Detecting Antigravity database...
           </h2>
           <p className="text-gray-500 dark:text-gray-400">
-            请稍候，正在查找 Antigravity 数据库路径
+            Please wait, searching for Antigravity database path
           </p>
         </div>
       </div>

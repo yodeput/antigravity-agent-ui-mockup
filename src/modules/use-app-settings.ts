@@ -48,7 +48,7 @@ export const useAppSettings = create<State & Actions>((setState, getState) => {
 
   return {
     hydrated: false,
-    // 默认保持当前行为：用户卡片信息打码
+    // Default: keep current behavior - mask user card info
     systemTrayEnabled: false,
     silentStartEnabled: false,
     debugMode: false,
@@ -74,7 +74,7 @@ export const useAppSettings = create<State & Actions>((setState, getState) => {
             });
           })
           .catch((error) => {
-            logger.error('加载设置失败', {
+            logger.error('Failed to load settings', {
               module: 'AppSettings',
               action: 'hydrate_failed',
               error: error instanceof Error ? error.message : String(error)
@@ -98,7 +98,7 @@ export const useAppSettings = create<State & Actions>((setState, getState) => {
           hydrated: true,
         });
       } catch (error) {
-        logger.error('刷新设置失败', {
+        logger.error('Failed to refresh settings', {
           module: 'AppSettings',
           action: 'refresh_failed',
           error: error instanceof Error ? error.message : String(error)
@@ -118,7 +118,7 @@ export const useAppSettings = create<State & Actions>((setState, getState) => {
           hydrated: true,
         });
       } catch (error) {
-        logger.error('切换系统托盘失败', {
+        logger.error('Failed to toggle system tray', {
           module: 'AppSettings',
           action: 'set_system_tray_enabled_failed',
           enabled,
@@ -133,7 +133,7 @@ export const useAppSettings = create<State & Actions>((setState, getState) => {
       setState(state => ({loading: {...state.loading, silentStart: true}}))
 
       try {
-        // 启用静默启动前确保系统托盘已开启（否则后端会自动修正为 false）
+        // Enable system tray before enabling silent start (otherwise backend will auto-correct to false)
         if (enabled && !getState().systemTrayEnabled) {
           setState(state => ({loading: {...state.loading, systemTray: true}}))
           try {
@@ -152,7 +152,7 @@ export const useAppSettings = create<State & Actions>((setState, getState) => {
           hydrated: true,
         });
       } catch (error) {
-        logger.error('切换静默启动失败', {
+        logger.error('Failed to toggle silent start', {
           module: 'AppSettings',
           action: 'set_silent_start_enabled_failed',
           enabled,
@@ -172,7 +172,7 @@ export const useAppSettings = create<State & Actions>((setState, getState) => {
         setState({debugMode: nextEnabled, hydrated: true});
         await relaunch();
       } catch (error) {
-        logger.error('切换 Debug Mode 失败', {
+        logger.error('Failed to toggle Debug Mode', {
           module: 'AppSettings',
           action: 'set_debug_mode_failed',
           enabled,
@@ -191,7 +191,7 @@ export const useAppSettings = create<State & Actions>((setState, getState) => {
         const nextEnabled = typeof result === 'boolean' ? result : enabled;
         setState({privateMode: nextEnabled, hydrated: true});
       } catch (error) {
-        logger.error('切换隐私模式失败', {
+        logger.error('Failed to toggle privacy mode', {
           module: 'AppSettings',
           action: 'set_private_mode_failed',
           enabled,

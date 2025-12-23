@@ -16,57 +16,57 @@ const {confirm} = Modal;
 
 const AppDock = () => {
 
-  // ========== 应用状态 ==========
+  // ========== Application State ==========
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const { currentView, setView } = useAppNavigation();
 
   const antigravityAccount = useAntigravityAccount();
   const importExportAccount = useImportExportAccount();
-  // 使用单独的选择器避免无限循环
+  // Use separate selectors to avoid infinite loops
   const isImporting = useImportExportAccount((state) => state.isImporting);
   const isExporting = useImportExportAccount((state) => state.isExporting);
   const isCheckingData = useImportExportAccount((state) => state.isCheckingData);
   const importDialogIsOpen = useImportExportAccount((state) => state.importDialogIsOpen);
   const exportDialogIsOpen = useImportExportAccount((state) => state.exportDialogIsOpen);
 
-  // 处理导入对话框取消
+  // Handle import dialog cancel
   const handleImportDialogCancel = useCallback(() => {
     importExportAccount.closeImportDialog();
-    toast.error('操作已取消');
+    toast.error('Operation cancelled');
   }, [importExportAccount]);
 
-  // 处理导出对话框取消
+  // Handle export dialog cancel
   const handleExportDialogCancel = useCallback(() => {
     importExportAccount.closeExportDialog();
-    toast.error('操作已取消');
+    toast.error('Operation cancelled');
   }, [importExportAccount]);
 
-  // 包装方法以刷新用户列表
+  // Wrapper methods to refresh user list
   const handleImportConfig = () => {
     importExportAccount.importConfig()
   };
   const handleExportConfig = () => importExportAccount.exportConfig();
 
-  // 进程管理
+  // Process management
   const signInNewAntigravityAccount = useSignInNewAntigravityAccount();
 
-  // 计算全局加载状态
+  // Calculate global loading state
   const isAnyLoading = signInNewAntigravityAccount.processing || isImporting || isExporting;
   
-  // 处理登录新账户按钮点击
+  // Handle sign in new account button click
   const handleBackupAndRestartClick = () => {
     confirm({
       centered: true,
-      title: '登录新账户',
+      title: 'Sign In New Account',
       content: <p className={"wrap-break-word whitespace-pre-line"}>
-        {`确定要关闭 Antigravity 并登录新账户吗？
+        {`Are you sure you want to close Antigravity and sign in with a new account?
 
-此操作将会：
-1. 关闭所有 Antigravity 进程
-2. 清除 Antigravity 用户信息
-3. 自动重新启动 Antigravity
+This action will:
+1. Close all Antigravity processes
+2. Clear Antigravity user data
+3. Automatically restart Antigravity
 
-注意：系统将自动启动 Antigravity，请确保已保存所有重要工作`}
+Note: The system will automatically start Antigravity, please make sure all important work is saved`}
       </p>,
       onOk() {
         signInNewAntigravityAccount.run();
@@ -88,7 +88,7 @@ const AppDock = () => {
       <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-40">
         <Dock>
           <DockIcon onClick={() => setView('accounts')}>
-            <AnimatedTooltip text={"账户列表"}>
+            <AnimatedTooltip text={"Account List"}>
               <Users className="size-6" />
             </AnimatedTooltip>
           </DockIcon>
@@ -98,22 +98,22 @@ const AppDock = () => {
             </AnimatedTooltip>
           </DockIcon>
           <DockIcon onClick={handleBackupAndRestartClick}>
-            <AnimatedTooltip text={"登录新账户"}>
+            <AnimatedTooltip text={"Sign In New Account"}>
               <UserRoundPlus className="size-6" />
             </AnimatedTooltip>
           </DockIcon>
           <DockIcon onClick={handleImportConfig}>
-            <AnimatedTooltip text={"导入账户"}>
+            <AnimatedTooltip text={"Import Accounts"}>
               <ArrowBigUpDash className="size-6" />
             </AnimatedTooltip>
           </DockIcon>
           <DockIcon onClick={handleExportConfig}>
-            <AnimatedTooltip text={"导出所有账户"}>
+            <AnimatedTooltip text={"Export All Accounts"}>
               <ArrowBigDownDash className="size-6" />
             </AnimatedTooltip>
           </DockIcon>
           <DockIcon onClick={() => setIsSettingsOpen(true)}>
-            <AnimatedTooltip text={"偏好设置"}>
+            <AnimatedTooltip text={"Preferences"}>
               <Settings className="size-6" />
             </AnimatedTooltip>
           </DockIcon>

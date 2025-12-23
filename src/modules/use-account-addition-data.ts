@@ -14,7 +14,7 @@ type Actions = {
   update: (antigravityAccount: AntigravityAccount) => Promise<void>
 }
 
-// 暂时不知道 ultra 定义, 先模糊匹配,
+// Don't know the ultra tier definition yet, using fuzzy match for now
 export type UserTier = 'free-tier' | 'g1-pro-tier' | 'g1-ultra-tier';
 
 export interface AccountAdditionData {
@@ -41,24 +41,24 @@ export const useAccountAdditionData = create<State & Actions>((setState, getStat
       codeAssistResponse = e
     }
 
-    // 如果存在错误, 则使用 ouath 重新获取 access token
+    // If there's an error, use oauth to refresh access token
     if ("error" in codeAssistResponse) {
-      logger.debug('获取 code assist 失败, 尝试刷新 access token', {
+      logger.debug('Failed to get code assist, trying to refresh access token', {
         module: 'use-account-addition-data',
       })
-      // 避免冲突 如果是当前账户, 并且 Antigravity 在运行, 则不刷新 access token
+      // Avoid conflict: if this is the current account and Antigravity is running, don't refresh access token
       const currentAccount = await AccountCommands.getCurrentAntigravityAccount()
       const isAntigravityRunning = await ProcessCommands.isRunning()
       if (antigravityAccount.context.email === currentAccount?.context.email && isAntigravityRunning) {
         return
       }
-      // 刷新 access token
+      // Refresh access token
       const refreshTokenResponse = await CloudCodeAPI.refreshAccessToken(antigravityAccount.auth.id_token);
-      // 更新一下内存里面的 access token, 这里就不写入本地了
+      // Update access token in memory, not writing to local storage here
       antigravityAccount.auth.access_token = refreshTokenResponse.access_token;
     }
 
-    // 先模糊匹配下 tier 的定义, 因为我也知不道具体是啥
+    // Fuzzy match tier definition since the exact format is unknown
     if (antigravityAccount.context.plan.slug.includes("ultra")) {
       // antigravityAccount.context.plan.slug = "g1-ultra-tier";
     }
@@ -68,7 +68,7 @@ export const useAccountAdditionData = create<State & Actions>((setState, getStat
     const modelsResponse = await CloudCodeAPI.fetchAvailableModels(antigravityAccount.auth.access_token, codeAssistResponse.cloudaicompanionProject);
     const userInfoResponse = await CloudCodeAPI.userinfo(antigravityAccount.auth.access_token);
 
-    logger.debug('获取 AccountAdditionData 成功', {
+    logger.debug('Successfully fetched AccountAdditionData', {
       module: 'use-account-addition-data',
       email: antigravityAccount.context.email,
     })

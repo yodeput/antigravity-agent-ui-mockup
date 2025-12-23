@@ -23,7 +23,7 @@ const BusinessSettingsDialog: React.FC<BusinessSettingsDialogProps> = ({
   const [appVersion, setAppVersion] = useState<string>('');
 
   
-  // 应用设置（统一管理）
+  // Application settings (unified management)
   const systemTrayEnabled = useAppSettings(state => state.systemTrayEnabled);
   const silentStartEnabled = useAppSettings(state => state.silentStartEnabled);
   const debugMode = useAppSettings(state => state.debugMode);
@@ -56,19 +56,19 @@ const BusinessSettingsDialog: React.FC<BusinessSettingsDialogProps> = ({
     if (!finalExecPath) {
       const detectedExec = await PlatformCommands.detectExecutable();
       if (detectedExec.found && detectedExec.path) {
-        finalExecPath = detectedExec.path + ' (自动检测)';
+        finalExecPath = detectedExec.path + ' (auto-detected)';
       }
     }
 
-    setExecPath(finalExecPath || '未设置');
+    setExecPath(finalExecPath || 'Not set');
   };
 
   const loadLogDirectoryPath = async () => {
     try {
       const logPath = await LoggingCommands.getLogDirectoryPath();
-      setLogDirPath(logPath || '未设置');
+      setLogDirPath(logPath || 'Not set');
     } catch (_error) {
-      setLogDirPath('未设置');
+      setLogDirPath('Not set');
     }
   };
 
@@ -77,10 +77,10 @@ const BusinessSettingsDialog: React.FC<BusinessSettingsDialogProps> = ({
       const result = await open({
         directory: false,
         multiple: false,
-        title: '选择 Antigravity 可执行文件',
+        title: 'Select Antigravity Executable',
         filters: [
-          { name: '可执行文件', extensions: ['exe', 'app', ''] },
-          { name: '所有文件', extensions: ['*'] }
+          { name: 'Executable Files', extensions: ['exe', 'app', ''] },
+          { name: 'All Files', extensions: ['*'] }
         ]
       });
 
@@ -107,7 +107,7 @@ const BusinessSettingsDialog: React.FC<BusinessSettingsDialogProps> = ({
       onCancel={() => onOpenChange(false)}
       title={<div className={"flex flex-row items-center gap-1.5"}>
         <Settings className="h-4 w-4 text-gray-500"/>
-        <span>设置</span>
+        <span>Settings</span>
         <span
           className="ml-1 text-xs font-mono text-gray-400 bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded-full font-normal">
           v{appVersion}
@@ -116,21 +116,21 @@ const BusinessSettingsDialog: React.FC<BusinessSettingsDialogProps> = ({
       }
     >
       <div className="p-5 space-y-6">
-        {/* 路径设置组 */}
+        {/* Path Settings Group */}
         <div className="space-y-4">
           <div className="space-y-3">
             <PathSettingRow
-              label="Antigravity 可执行文件"
+              label="Antigravity Executable"
               value={execPath}
-              actionTitle="Antigravity 可执行文件"
+              actionTitle="Antigravity Executable"
               onAction={handleBrowseExecPath}
               actionIcon={<FileCode className="h-4 w-4 text-gray-500"/>}
             />
 
             <PathSettingRow
-              label="日志目录"
+              label="Log Directory"
               value={logDirPath}
-              actionTitle="打开日志目录"
+              actionTitle="Open Log Directory"
               onAction={handleOpenLogDirectory}
               actionIcon={<FolderOpen className="h-4 w-4 text-gray-500"/>}
             />
@@ -142,8 +142,8 @@ const BusinessSettingsDialog: React.FC<BusinessSettingsDialogProps> = ({
         <div className="space-y-1">
           <SettingToggle
             icon={<Monitor className="h-4 w-4 text-blue-500"/>}
-            title="系统托盘"
-            description="关闭窗口时最小化到托盘"
+            title="System Tray"
+            description="Minimize to tray when closing window"
             checked={systemTrayEnabled}
             onChange={setSystemTrayEnabled}
             isLoading={loading.systemTray}
@@ -151,8 +151,8 @@ const BusinessSettingsDialog: React.FC<BusinessSettingsDialogProps> = ({
 
           <SettingToggle
             icon={<VolumeX className="h-4 w-4 text-purple-500"/>}
-            title="静默启动"
-            description="启动时自动隐藏主窗口"
+            title="Silent Start"
+            description="Automatically hide main window on startup"
             checked={silentStartEnabled}
             onChange={setSilentStartEnabled}
             isLoading={loading.silentStart}
@@ -160,8 +160,8 @@ const BusinessSettingsDialog: React.FC<BusinessSettingsDialogProps> = ({
 
           <SettingToggle
             icon={<EyeOff className="h-4 w-4 text-emerald-500"/>}
-            title="隐私模式"
-            description="对敏感信息进行混淆"
+            title="Privacy Mode"
+            description="Obfuscate sensitive information"
             checked={privateMode}
             onChange={setPrivateMode}
             isLoading={loading.privateMode}
@@ -169,8 +169,8 @@ const BusinessSettingsDialog: React.FC<BusinessSettingsDialogProps> = ({
 
           <SettingToggle
             icon={<Bug className="h-4 w-4 text-orange-500"/>}
-            title="调试模式"
-            description="记录更多日志（切换后自动重启程序）"
+            title="Debug Mode"
+            description="Log more details (app restarts after toggling)"
             checked={debugMode}
             onChange={setDebugMode}
             isLoading={loading.debugMode}
@@ -180,7 +180,7 @@ const BusinessSettingsDialog: React.FC<BusinessSettingsDialogProps> = ({
         <div className="h-px bg-gray-100 dark:bg-gray-800"/>
 
         <div className="space-y-1">
-          <a target={"_blank"} href={"https://github.com/MonchiLin/antigravity-agent/issues"}>遇到问题/请求新功能</a>
+          <a target={"_blank"} href={"https://github.com/MonchiLin/antigravity-agent/issues"}>Report Issue / Request Feature</a>
         </div>
 
       </div>
@@ -224,7 +224,7 @@ const PathSettingRow = ({
   </div>
 );
 
-// 内部组件：设置开关项
+// Internal component: Setting toggle item
 const SettingToggle = ({
   icon,
   title,

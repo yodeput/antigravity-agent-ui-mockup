@@ -33,16 +33,16 @@ export function AppContent() {
     tiers: null,
   });
 
-  // 初始化托盘菜单更新
+  // Initialize tray menu updates
   useTrayMenu();
 
-  // 组件挂载时获取用户列表
+  // Fetch user list on component mount
   useEffect(() => {
     const loadUsers = async () => {
       try {
         await antigravityAccount.getAccounts();
       } catch (error) {
-        toast.error(`获取用户列表失败: ${error}`);
+        toast.error(`Failed to get user list: ${error}`);
       } finally {
       }
     };
@@ -50,7 +50,7 @@ export function AppContent() {
     loadUsers();
   }, []);
 
-  // 定时获取用户额外数据
+  // Periodically fetch user additional data
   const fetchAccountAdditionDataTimer = useRef(null)
 
   useEffect(() => {
@@ -63,7 +63,7 @@ export function AppContent() {
         try {
           await accountAdditionData.update(user)
         } catch (e) {
-          logger.error('获取用户额外数据失败', {
+          logger.error('Failed to get user additional data', {
             module: 'AppContent',
             email: user.context.email,
             error: e instanceof Error ? e.message : String(e)
@@ -83,7 +83,7 @@ export function AppContent() {
     }
   }, [antigravityAccount.accounts]);
 
-  // 用户详情处理
+  // User details handling
   const handleUserClick = (account: AccountSessionListAccountItem) => {
     setSelectedUser(account);
     setIsUserDetailOpen(true);
@@ -97,9 +97,9 @@ export function AppContent() {
   const handleDeleteBackup = (user: AccountSessionListAccountItem) => {
     Modal.confirm({
       centered: true,
-      title: '确认删除账户',
+      title: 'Confirm Account Deletion',
       content: <p className={"wrap-break-word whitespace-pre-line"}>
-        {`确定要删除账户 "${user.email}" 吗？此操作无法撤销。`}
+        {`Are you sure you want to delete account "${user.email}"? This action cannot be undone.`}
       </p>,
       onOk() {
         return confirmDeleteAccount(user.email);
@@ -111,12 +111,12 @@ export function AppContent() {
 
   const confirmDeleteAccount = async (email: string) => {
     await antigravityAccount.delete(email);
-    toast.success(`账户 "${email}" 删除成功`);
+    toast.success(`Account "${email}" deleted successfully`);
   };
 
   const handleSwitchAccount = async (user: AccountSessionListAccountItem) => {
     try {
-      appGlobalLoader.open({label: `正在切换到用户: ${maskEmail(user.email)}...`});
+      appGlobalLoader.open({label: `Switching to user: ${maskEmail(user.email)}...`});
       await antigravityAccount.switchToAccount(user.email);
     } finally {
       appGlobalLoader.close();
@@ -125,15 +125,15 @@ export function AppContent() {
 
   const handleClearAllBackups = () => {
     if (antigravityAccount.accounts.length === 0) {
-      toast.error('当前没有用户备份可清空');
+      toast.error('No user backups to clear');
       return;
     }
 
     Modal.confirm({
       centered: true,
-      title: '确认清空所有备份',
+      title: 'Confirm Clear All Backups',
       content: <p className={"wrap-break-word whitespace-pre-line"}>
-        {`此操作将永久删除所有 ${antigravityAccount.accounts.length} 个账户，且无法恢复。请确认您要继续此操作吗？`}
+        {`This will permanently delete all ${antigravityAccount.accounts.length} accounts and cannot be undone. Are you sure you want to continue?`}
       </p>,
       onOk() {
         return confirmClearAllBackups();
@@ -146,9 +146,9 @@ export function AppContent() {
   const confirmClearAllBackups = async () => {
     try {
       await antigravityAccount.clearAllAccounts();
-      toast.success('清空所有备份成功');
+      toast.success('All backups cleared successfully');
     } catch (error) {
-      toast.error(`清空备份失败: ${error}`);
+      toast.error(`Failed to clear backups: ${error}`);
       throw error;
     }
   };
@@ -169,7 +169,7 @@ export function AppContent() {
       nickName: account.context.plan_name,
       userAvatar: accountAdditionDatum?.userAvatar ?? "",
       apiKey: account.auth.access_token,
-      // 似乎在某些情况下 plan 可能为 null，这里添加 null 检查
+      // In some cases plan might be null, adding null check here
       tier: (account.context.plan?.slug ?? 'free-tier') as UserTier,
     }
   })

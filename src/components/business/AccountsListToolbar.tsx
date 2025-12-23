@@ -15,12 +15,12 @@ export type ListToolbarValue = {
 };
 
 const defaultSortOptions: Array<{ value: ListSortKey; label: string }> = [
-  { value: 'name', label: '用户名首字母' },
-  { value: 'gemini-pro', label: 'Gemini Pro 配额' },
-  { value: 'claude', label: 'Claude 配额' },
-  { value: 'gemini-flash', label: 'Gemini Flash 配额' },
-  { value: 'gemini-image', label: 'Gemini Image 配额' },
-  { value: 'tier', label: '账户层次' },
+  { value: 'name', label: 'Username (A-Z)' },
+  { value: 'gemini-pro', label: 'Gemini Pro' },
+  { value: 'claude', label: 'Claude' },
+  { value: 'gemini-flash', label: 'Gemini Flash' },
+  { value: 'gemini-image', label: 'Gemini Image' },
+  { value: 'tier', label: 'Account Tier' },
 ];
 
 const tierUiMap: Record<UserTier, { label: string; accentClass: string }> = {
@@ -41,22 +41,22 @@ const tierUiMap: Record<UserTier, { label: string; accentClass: string }> = {
 const allTiers: UserTier[] = ['free-tier', 'g1-pro-tier', 'g1-ultra-tier'];
 
 export interface BusinessListToolbarProps {
-  /** 列表总数 */
+  /** Total count of items in the list */
   total: number;
-  /** 搜索关键字 */
+  /** Search keyword */
   query: string;
-  /** 排序 key */
+  /** Sort key */
   sortKey: ListSortKey;
-  /** 任一项变更时回调（返回完整状态） */
+  /** Callback when any item changes (returns complete state) */
   onChange: (next: ListToolbarValue) => void;
   className?: string;
-  // 为 null 时，显示所有层次
+  // When null, shows all tiers
   tiers?: UserTier[] | null;
 }
 
 /**
  * Business Component: ListToolbar
- * 列表顶部工具栏（标题 + 搜索 + 自定义动作/过滤器插槽）
+ * List top toolbar (title + search + custom action/filter slots)
  */
 const AccountsListToolbar: React.FC<BusinessListToolbarProps> = ({
   total,
@@ -118,10 +118,10 @@ const AccountsListToolbar: React.FC<BusinessListToolbarProps> = ({
 
       <div className="flex items-center gap-2 shrink-0">
         <div className="inline-flex items-center w-fit rounded-full border border-slate-200 bg-slate-100 p-0.5 transition-colors hover:border-slate-300">
-          {/* 左侧：标签部分 (较弱的视觉) */}
+          {/* Left: Label section (weaker visual) */}
           <span className="px-2 py-0.5 text-xs font-medium text-slate-600">
-          账户
-        </span>
+          Accounts
+         </span>
           <span className="flex min-w-[20px] items-center justify-center rounded-full bg-white px-1.5 py-0.5 text-xs font-bold text-slate-800 shadow-sm">
           {total}
         </span>
@@ -130,7 +130,7 @@ const AccountsListToolbar: React.FC<BusinessListToolbarProps> = ({
         <BaseInput
           value={query}
           onChange={handleSearchChange}
-          placeholder="搜索邮箱或昵称..."
+          placeholder="Search email or name..."
           leftIcon={<Search className="h-4 w-4" />}
           rightIcon={
             query ? (
@@ -147,7 +147,7 @@ const AccountsListToolbar: React.FC<BusinessListToolbarProps> = ({
           containerClassName="w-64 !space-y-0 ml-2"
           className="py-1.5 h-8 text-sm"
         />
-        {/* 层次筛选：分段按钮 */}
+        {/* Tier filter: segmented buttons */}
         <div
           className={cn(
             'flex items-center gap-0.5 p-0.5 rounded-lg border',
@@ -164,7 +164,7 @@ const AccountsListToolbar: React.FC<BusinessListToolbarProps> = ({
                 : 'text-slate-600 dark:text-slate-300 hover:bg-white/70 dark:hover:bg-slate-900/60'
             )}
           >
-            全部
+            All
           </button>
           {allTiers.map(tier => {
             const isActive = selectedTiers.includes(tier);
@@ -187,7 +187,7 @@ const AccountsListToolbar: React.FC<BusinessListToolbarProps> = ({
           })}
         </div>
 
-        {/* 排序选择：紧凑胶囊 */}
+        {/* Sort selection: compact capsule */}
         <div
           className={cn(
             'flex items-center gap-1 h-8 px-2 rounded-lg border',

@@ -2,7 +2,7 @@ import {invoke} from '@tauri-apps/api/core';
 import type {BackupData, RestoreResult} from './types/account-manage.types.ts';
 
 /**
- * 账户与备份综合命令
+ * Account and Backup Management Commands
  */
 export class AccountManageCommands {
   static collectAccountContents(): Promise<BackupData[]> {
@@ -21,7 +21,7 @@ export class AccountManageCommands {
     return invoke('clear_all_backups');
   }
 
-  // ==== 配置加解密 ====
+  // ==== Config Encryption/Decryption ====
   static encryptConfig(jsonData: string, password: string): Promise<string> {
     return invoke('encrypt_config_data', { jsonData: jsonData, password });
   }
