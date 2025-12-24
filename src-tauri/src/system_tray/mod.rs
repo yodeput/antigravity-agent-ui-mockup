@@ -1,6 +1,6 @@
-//! 系统托盘管理模块
+//! System tray management module
 //!
-//! 使用 Tauri 2.9 内置 API 实现后端控制托盘，前端通过命令更新菜单
+//! Uses Tauri 2.9 built-in API for backend tray control, frontend updates menu via commands
 
 pub mod manager;
 pub mod tray;

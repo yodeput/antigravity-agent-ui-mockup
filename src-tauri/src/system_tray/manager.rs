@@ -2,60 +2,60 @@ use tauri::{AppHandle, Manager};
 
 use crate::app_settings::AppSettingsManager;
 
-/// 系统托盘管理器
+/// System tray manager
 pub struct SystemTrayManager;
 
 impl SystemTrayManager {
-    /// 创建新的管理器
+    /// Create a new manager
     pub fn new() -> Self {
         Self
     }
 
-    /// 启用系统托盘
+    /// Enable system tray
     pub fn enable(&self, app_handle: &AppHandle) -> Result<(), String> {
-        // 1. 更新设置
+        // 1. Update settings
         let settings_manager = app_handle.state::<AppSettingsManager>();
         settings_manager
             .update_settings(|s| s.system_tray_enabled = true)
             .map_err(|e| e.to_string())?;
 
-        // 2. 检查是否已存在托盘
+        // 2. Check if tray already exists
         if let Some(app_tray) = app_handle.tray_by_id("main") {
-            tracing::info!("显示现有托盘");
+            tracing::info!("Showing existing tray");
             app_tray.set_visible(true).map_err(|e| {
-                tracing::error!("显示托盘图标失败: {e}");
+                tracing::error!("Failed to show tray icon: {e}");
                 e.to_string()
             })?;
         } else {
-            // 创建新的托盘
+            // Create new tray
             crate::system_tray::create_tray_with_return(app_handle)?;
-            tracing::info!("系统托盘已创建");
+            tracing::info!("System tray created");
         }
 
         Ok(())
     }
 
-    /// 禁用系统托盘
+    /// Disable system tray
     pub fn disable(&self, app_handle: &AppHandle) -> Result<(), String> {
-        // 1. 更新设置
+        // 1. Update settings
         let settings_manager = app_handle.state::<AppSettingsManager>();
         settings_manager
             .update_settings(|s| s.system_tray_enabled = false)
             .map_err(|e| e.to_string())?;
 
-        // 2. 隐藏托盘
+        // 2. Hide tray
         if let Some(app_tray) = app_handle.tray_by_id("main") {
             app_tray.set_visible(false).map_err(|e| {
-                tracing::error!("隐藏托盘图标失败: {e}");
+                tracing::error!("Failed to hide tray icon: {e}");
                 e.to_string()
             })?;
-            tracing::info!("托盘图标已隐藏");
+            tracing::info!("Tray icon hidden");
         }
 
         Ok(())
     }
 
-    /// 检查系统托盘是否应启用（基于设置）
+    /// Check if system tray should be enabled (based on settings)
     pub fn is_enabled_setting(&self, app_handle: &AppHandle) -> bool {
         app_handle
             .state::<AppSettingsManager>()
@@ -63,7 +63,7 @@ impl SystemTrayManager {
             .system_tray_enabled
     }
 
-    /// 最小化窗口到托盘
+    /// Minimize window to tray
     pub fn minimize_to_tray(&self, app_handle: &AppHandle) -> Result<(), String> {
         if let Some(window) = app_handle.get_webview_window("main") {
             window.hide().map_err(|e| e.to_string())?;
@@ -71,7 +71,7 @@ impl SystemTrayManager {
         Ok(())
     }
 
-    /// 从托盘恢复窗口
+    /// Restore window from tray
     pub fn restore_from_tray(&self, app_handle: &AppHandle) -> Result<(), String> {
         if let Some(window) = app_handle.get_webview_window("main") {
             window.show().map_err(|e| e.to_string())?;

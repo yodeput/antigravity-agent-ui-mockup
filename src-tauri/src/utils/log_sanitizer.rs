@@ -1,17 +1,17 @@
-//! 日志脱敏模块
-//! 对敏感信息进行智能遮盖，保护用户隐私的同时保留调试价值
+//! Log sanitization module
+//! Smart masking of sensitive information to protect user privacy while preserving debugging value
 
 use regex::Regex;
 
-/// 日志脱敏器
+/// Log sanitizer
 pub struct LogSanitizer {
-    /// 邮箱正则表达式
+    /// Email regex
     email_regex: Regex,
-    /// API密钥正则表达式
+    /// API key regex
     api_key_regex: Regex,
-    /// 用户主目录正则表达式
+    /// User home directory regex
     user_home_regex: Regex,
-    /// Windows用户目录正则表达式
+    /// Windows user directory regex
     windows_user_regex: Regex,
 }
 
@@ -27,35 +27,35 @@ impl Default for LogSanitizer {
 }
 
 impl LogSanitizer {
-    /// 创建新的脱敏器实例
+    /// Create a new sanitizer instance
     pub fn new() -> Self {
         Self::default()
     }
 
-    /// 对字符串进行脱敏处理
+    /// Sanitize a string
     pub fn sanitize(&self, input: &str) -> String {
         let mut result = input.to_string();
 
-        // 1. 脱敏邮箱地址
+        // 1. Sanitize email addresses
         result = self.sanitize_email(&result);
 
-        // 2. 使用基础的路径脱敏
+        // 2. Use basic path sanitization
         result = self.sanitize_paths(&result);
 
-        // 3. 脱敏API密钥
+        // 3. Sanitize API keys
         result = self.sanitize_api_keys(&result);
 
         result
     }
 
-    /// 智能邮箱脱敏 - 保留首尾字符，中间用*替代
+    /// Smart email sanitization - keep first and last characters, replace middle with *
     ///
-    /// 策略：
-    /// - 1个字符：保留原样
-    /// - 2个字符：显示首字符 + *
-    /// - 3个及以上：显示首字符 + 中间* + 尾字符
+    /// Strategy:
+    /// - 1 character: keep as is
+    /// - 2 characters: show first character + *
+    /// - 3 or more: show first character + middle * + last character
     ///
-    /// # 示例
+    /// # Examples
     /// ```
     /// "a@domain.com" → "a@domain.com"
     /// "ab@domain.com" → "a*@domain.com"
@@ -88,9 +88,9 @@ impl LogSanitizer {
             .to_string()
     }
 
-    /// 路径脱敏 - 隐藏用户主目录部分
+    /// Path sanitization - hide user home directory part
     ///
-    /// # 示例
+    /// # Examples
     /// ```
     /// "/home/user/.antigravity-agent" → "~/.antigravity-agent"
     /// "/home/user/Documents/file.txt" → "~/Documents/file.txt"
@@ -100,21 +100,21 @@ impl LogSanitizer {
     pub fn sanitize_paths(&self, input: &str) -> String {
         let mut result = input.to_string();
 
-        // 处理 Linux/Unix 路径
+        // Handle Linux/Unix paths
         result = self
             .user_home_regex
             .replace_all(&result, |_caps: &regex::Captures| "~")
             .to_string();
 
-        // 处理 Windows 路径 - 修正正则表达式匹配用户名
+        // Handle Windows paths - fix regex to match username
         result = self
             .windows_user_regex
             .replace_all(&result, |_caps: &regex::Captures| "~")
             .to_string();
 
-        // 额外处理一些可能遗漏的路径格式
+        // Additional handling for some potentially missed path formats
         if result.contains("C:\\Users\\") {
-            // 使用更简单的替换方式
+                // Use simpler replacement method
             result = regex::Regex::new(r"C:\\\\Users\\\\[^\\\\]+")
                 .unwrap()
                 .replace_all(&result, "~")
@@ -124,9 +124,9 @@ impl LogSanitizer {
         result
     }
 
-    /// API密钥脱敏 - 只显示前几个字符，后面用*替代
+    /// API key sanitization - only show first few characters, replace rest with *
     ///
-    /// # 示例
+    /// # Examples
     /// ```
     /// "api_key: sk-1234567890abcdef" → "api_key: sk-12****************"
     /// "token: abcdef1234567890" → "token: ab****************"
@@ -151,7 +151,7 @@ impl LogSanitizer {
     }
 }
 
-/// 对日志消息进行脱敏处理的便捷函数
+/// Convenience function for sanitizing log messages
 pub fn sanitize_log_message(message: &str) -> String {
     let sanitizer = LogSanitizer::new();
     sanitizer.sanitize(message)

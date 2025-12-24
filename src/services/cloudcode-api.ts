@@ -146,5 +146,75 @@ export namespace CloudCodeAPI {
     return json;
   }
 
+  /**
+   * Generate an image using Google Gemini image generation models
+   * @param accessToken The user's access token for authentication
+   * @param modelId The model ID to use (e.g., 'gemini-3-pro-image')
+   * @param prompt The text prompt describing the image to generate
+   * @param project The project ID from loadCodeAssist
+   * @param aspectRatio Optional aspect ratio (e.g., '1:1', '16:9', '9:16')
+   * @returns The generated image response containing base64 image data
+   */
+  export async function generateImage(
+    accessToken: string,
+    modelId: string,
+    prompt: string,
+    project: string,
+    aspectRatio?: string,
+  ): Promise<CloudCodeAPITypes.GenerateImageResponse> {
+    // Build the wrapped request format matching opencode-antigravity-auth
+    const requestData = {
+      project: project,
+      model: modelId,
+      request: {
+        contents: [
+          {
+            role: 'user',
+            parts: [
+              {
+                text: prompt
+              }
+            ]
+          }
+        ],
+        generationConfig: {
+          responseModalities: ['TEXT', 'IMAGE'],
+          // ...(aspectRatio && {
+          //   aspectRatio: aspectRatio
+          // })
+        }
+      }
+    };
+
+    console.log('[CloudCodeAPI] generateImage request:', {
+      model: modelId,
+      project: project,
+      aspectRatio,
+      promptLength: prompt.length
+    });
+
+    // Use /v1internal:generateContent (same as text generation)
+    const response = await post<any>(
+      '/v1internal:generateContent',
+      requestData,
+      {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`
+        }
+      }
+    );
+
+    console.log('[CloudCodeAPI] generateImage response:', response);
+    
+    if ("error" in response) {
+      console.error('[CloudCodeAPI] generateImage error:', response.error);
+      return Promise.reject(response);
+    }
+
+    // The response may be wrapped in a 'response' field
+    const actualResponse = response.response || response;
+    return actualResponse;
+  }
+
 }
 

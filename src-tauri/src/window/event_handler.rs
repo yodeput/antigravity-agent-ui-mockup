@@ -1,22 +1,22 @@
-// 窗口事件处理模块
-// 负责在应用启动时恢复窗口状态
+// Window event handling module
+// Responsible for restoring window state on application startup
 
 use super::state_manager::{load_window_state, save_window_state, WindowState};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use tauri::Manager;
 
-/// 初始化窗口事件处理器
+/// Initialize window event handler
 pub fn init_window_event_handler(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
-    // 获取主窗口
-    let main_window = app.get_webview_window("main").ok_or("无法获取主窗口")?;
+    // Get main window
+    let main_window = app.get_webview_window("main").ok_or("Unable to get main window")?;
 
-    // 创建保存状态的共享状态，用于防抖和恢复标志
-    let is_restoring = Arc::new(Mutex::new(true)); // 恢复标志，防止保存状态
-    let debounce_timer = Arc::new(Mutex::new(None::<tauri::async_runtime::JoinHandle<()>>)); // 防抖定时器句柄
-    const DEBOUNCE_DURATION: Duration = Duration::from_secs(2); // 防抖延迟时间
+    // Create shared state for save operations, used for debounce and restore flag
+    let is_restoring = Arc::new(Mutex::new(true)); // Restore flag to prevent saving state
+    let debounce_timer = Arc::new(Mutex::new(None::<tauri::async_runtime::JoinHandle<()>>)); // Debounce timer handle
+    const DEBOUNCE_DURATION: Duration = Duration::from_secs(2); // Debounce delay time
 
-    // 应用启动时，尝试恢复上次保存的窗口状态
+    // On application startup, try to restore the last saved window state
     let window_clone = main_window.clone();
     let is_restoring_clone = is_restoring.clone();
     tauri::async_runtime::spawn(async move {
@@ -29,65 +29,65 @@ pub fn init_window_event_handler(app: &tauri::App) -> Result<(), Box<dyn std::er
                     width = %saved_state.width,
                     height = %saved_state.height,
                     maximized = %saved_state.maximized,
-                    "恢复窗口状态"
+                    "Restoring window state"
                 );
 
-                // 设置窗口位置
+                // Set window position
                 if let Err(e) =
                     window_clone.set_position(tauri::Position::Physical(tauri::PhysicalPosition {
                         x: saved_state.x as i32,
                         y: saved_state.y as i32,
                     }))
                 {
-                    tracing::warn!(target: "window::restore", error = %e, "恢复窗口位置失败，使用默认位置");
+                    tracing::warn!(target: "window::restore", error = %e, "Failed to restore window position, using default position");
                 }
 
-                // 设置窗口大小
+                // Set window size
                 if let Err(e) = window_clone.set_size(tauri::Size::Physical(tauri::PhysicalSize {
                     width: saved_state.width as u32,
                     height: saved_state.height as u32,
                 })) {
-                    tracing::warn!(target: "window::restore", error = %e, "恢复窗口大小失败，使用默认大小");
+                    tracing::warn!(target: "window::restore", error = %e, "Failed to restore window size, using default size");
                 }
 
-                // 如果之前是最大化状态，则恢复最大化
+                // If previously maximized, restore maximized state
                 if saved_state.maximized {
                     if let Err(e) = window_clone.maximize() {
-                        eprintln!("⚠️ 恢复窗口最大化状态失败: {}", e);
+                        eprintln!("⚠️ Failed to restore window maximized state: {}", e);
                     } else {
-                        println!("✅ 窗口状态恢复完成（包含最大化）");
+                        println!("✅ Window state restored (including maximized)");
                     }
                 } else {
-                    println!("✅ 窗口状态恢复完成");
+                    println!("✅ Window state restored");
                 }
             }
             Err(e) => {
-                eprintln!("⚠️ 加载窗口状态失败: {}，将使用默认状态", e);
-                println!("✅ 使用默认窗口状态");
+                eprintln!("⚠️ Failed to load window state: {}, will use default state", e);
+                println!("✅ Using default window state");
             }
         }
 
-        // 恢复完成后，等待一小段时间确保所有窗口事件都处理完毕，然后清除恢复标志
+        // After restore completes, wait a short time to ensure all window events are processed, then clear restore flag
         tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
-        // 安全的锁获取，避免毒化锁 panic
+        // Safe lock acquisition to avoid poisoned lock panic
         match is_restoring_clone.lock() {
             Ok(mut flag) => {
                 *flag = false;
-                println!("✅ 窗口状态恢复标志已清除，开始响应窗口变化事件");
+                println!("✅ Window state restore flag cleared, now responding to window change events");
             }
             Err(_) => {
-                eprintln!("⚠️ 恢复标志锁中毒，无法清除标志");
+                eprintln!("⚠️ Restore flag lock poisoned, unable to clear flag");
             }
         }
     });
 
-    // 防抖保存函数 - 更简单的实现，避免复杂的借用
+    // Debounced save function - simpler implementation to avoid complex borrowing
     let window_for_save = main_window.clone();
     let is_restoring_for_save = is_restoring.clone();
     let timer_for_save = debounce_timer.clone();
 
     let schedule_save = move || {
-        // 取消之前的定时器
+        // Cancel previous timer
         let timer = timer_for_save.clone();
         {
             if let Ok(mut timer_guard) = timer.try_lock() {
@@ -95,89 +95,89 @@ pub fn init_window_event_handler(app: &tauri::App) -> Result<(), Box<dyn std::er
                     handle.abort();
                 }
             }
-        } // 锁在这里自动释放
+        } // Lock is automatically released here
 
-        // 克隆异步任务需要的变量
+        // Clone variables needed for async task
         let window = window_for_save.clone();
         let restoring = is_restoring_for_save.clone();
         let timer_clone = timer_for_save.clone();
 
-        // 启动新的延迟保存任务
+        // Start a new delayed save task
         let handle = tauri::async_runtime::spawn(async move {
             tokio::time::sleep(DEBOUNCE_DURATION).await;
 
-            // 检查是否正在恢复状态
+            // Check if restore is in progress
             let should_save = match restoring.try_lock() {
                 Ok(is_restoring_flag) => !*is_restoring_flag,
                 Err(_) => {
-                    tracing::warn!(target: "window::event", "恢复标志锁被占用，跳过保存");
+                    tracing::warn!(target: "window::event", "Restore flag lock occupied, skipping save");
                     false
                 }
             };
 
             if should_save {
                 save_current_window_state(&window).await;
-                tracing::debug!(target: "window::event", "窗口状态已保存（防抖延迟后）");
+                tracing::debug!(target: "window::event", "Window state saved (after debounce delay)");
             }
 
-            // 清除定时器
+            // Clear timer
             if let Ok(mut timer_guard) = timer_clone.try_lock() {
                 *timer_guard = None;
             }
         });
 
-        // 保存定时器句柄
+        // Save timer handle
         if let Ok(mut timer_guard) = timer_for_save.try_lock() {
             *timer_guard = Some(handle);
         }
     };
 
-    // 监听窗口事件，包括大小变化、移动和关闭
+    // Listen for window events, including size change, move, and close
     let window_for_events = main_window.clone();
     let schedule_save_clone = schedule_save.clone();
 
     window_for_events.clone().on_window_event(move |event| {
         match event {
-            // 窗口大小变化或移动时，使用防抖机制延迟保存
+            // On window resize or move, use debounce mechanism for delayed save
             tauri::WindowEvent::Resized { .. } | tauri::WindowEvent::Moved { .. } => {
-                tracing::debug!(target: "window::event", "检测到窗口变化，启动防抖保存");
+                tracing::debug!(target: "window::event", "Window change detected, starting debounced save");
                 schedule_save_clone();
             }
-            // 注意：Tauri 2.x 中没有 Maximized/Unmaximized 事件
-            // 最大化/还原状态会在 Resized 事件中捕获和处理
-            // 窗口关闭时处理系统托盘逻辑
+            // Note: Tauri 2.x doesn't have Maximized/Unmaximized events
+            // Maximize/restore state will be captured and handled in Resized events
+            // Handle system tray logic on window close
             tauri::WindowEvent::CloseRequested { api, .. } => {
-                tracing::info!(target: "window::event", "收到窗口关闭请求事件");
+                tracing::info!(target: "window::event", "Received window close request event");
 
-                // 检查系统托盘是否启用
+                // Check if system tray is enabled
                 let app_handle = window_for_events.app_handle();
                 let system_tray = app_handle.state::<crate::system_tray::SystemTrayManager>();
                 let tray_enabled = system_tray.is_enabled_setting(app_handle);
 
                 if tray_enabled {
-                    tracing::info!(target: "window::event", "系统托盘已启用，阻止关闭并最小化到托盘");
-                    // 阻止窗口关闭
+                    tracing::info!(target: "window::event", "System tray enabled, preventing close and minimizing to tray");
+                    // Prevent window from closing
                     api.prevent_close();
 
-                    // 在异步运行时中执行最小化操作
+                    // Execute minimize operation in async runtime
                     let app_handle = window_for_events.app_handle().clone();
                     tauri::async_runtime::spawn(async move {
                         let system_tray =
                             app_handle.state::<crate::system_tray::SystemTrayManager>();
                         if let Err(e) = system_tray.minimize_to_tray(&app_handle) {
-                            tracing::error!(target: "window::event", error = %e, "最小化到托盘失败");
+                            tracing::error!(target: "window::event", error = %e, "Failed to minimize to tray");
                         }
                     });
                     return;
                 }
 
-                tracing::info!(target: "window::event", "系统托盘未启用，立即保存状态并允许关闭");
+                tracing::info!(target: "window::event", "System tray not enabled, saving state immediately and allowing close");
 
-                // 如果系统托盘未启用，立即保存状态并允许关闭（不需要防抖）
+                // If system tray is not enabled, save state immediately and allow close (no debounce needed)
                 let window = window_for_events.clone();
                 tauri::async_runtime::spawn(async move {
                     save_current_window_state(&window).await;
-                    tracing::debug!(target: "window::event", "窗口关闭前状态已保存");
+                    tracing::debug!(target: "window::event", "Window state saved before close");
                 });
             }
             _ => {}
@@ -187,7 +187,7 @@ pub fn init_window_event_handler(app: &tauri::App) -> Result<(), Box<dyn std::er
     Ok(())
 }
 
-/// 保存当前窗口状态的辅助函数
+/// Helper function to save current window state
 async fn save_current_window_state(window: &tauri::WebviewWindow) {
     if let (Ok(outer_position), Ok(outer_size), Ok(is_maximized)) = (
         window.outer_position(),
@@ -203,7 +203,7 @@ async fn save_current_window_state(window: &tauri::WebviewWindow) {
         };
 
         if let Err(e) = save_window_state(current_state).await {
-            eprintln!("保存窗口状态失败: {}", e);
+            eprintln!("Failed to save window state: {}", e);
         }
     }
 }

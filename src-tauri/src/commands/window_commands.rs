@@ -1,5 +1,5 @@
-//! 窗口状态管理命令
-//! 负责窗口位置、大小、状态等信息的保存和加载
+//! Window state management commands
+//! Responsible for saving and loading window position, size, state, and other info
 //!
-//! 注意：窗口状态管理已迁移到 window_event_handler.rs 中的自动处理
-//! 此模块保留以备将来需要手动窗口状态管理时使用
+//! Note: Window state management has been migrated to automatic handling in window_event_handler.rs
+//! This module is retained for future manual window state management if needed

@@ -1,4 +1,4 @@
-//! 工具模块
+//! Utilities module
 
 pub mod log_decorator;
 pub mod log_sanitizer;

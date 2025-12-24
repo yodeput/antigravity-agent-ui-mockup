@@ -1,4 +1,4 @@
-/// 检查 Antigravity 进程是否正在运行
+/// Check if Antigravity process is running
 #[tauri::command]
 pub async fn is_antigravity_running() -> bool {
     crate::platform::is_antigravity_running()

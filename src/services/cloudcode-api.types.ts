@@ -380,5 +380,61 @@ export namespace CloudCodeAPITypes {
     picture: string;
   }
 
+  // ============ Image Generation Types ============
+
+  export interface GenerateImageRequest {
+    model: string;
+    contents: GenerateImageContent[];
+    generationConfig?: GenerateImageConfig;
+  }
+
+  export interface GenerateImageContent {
+    parts: GenerateImagePart[];
+  }
+
+  export interface GenerateImagePart {
+    text?: string;
+    inlineData?: {
+      mimeType: string;
+      data: string;
+    };
+  }
+
+  export interface GenerateImageConfig {
+    responseModalities?: string[];
+    imageDimensions?: {
+      aspectRatio?: string;
+      width?: number;
+      height?: number;
+    };
+    numberOfImages?: number;
+  }
+
+  export interface GenerateImageResponse {
+    candidates: GenerateImageCandidate[];
+    usageMetadata?: {
+      promptTokenCount: number;
+      candidatesTokenCount: number;
+      totalTokenCount: number;
+    };
+  }
+
+  export interface GenerateImageCandidate {
+    content: {
+      parts: GenerateImageResponsePart[];
+      role: string;
+    };
+    finishReason: string;
+    index: number;
+  }
+
+  export interface GenerateImageResponsePart {
+    text?: string;
+    inlineData?: {
+      mimeType: string;
+      data: string;  // Base64 encoded image data
+    };
+  }
+
 }
 

@@ -96,13 +96,16 @@
               "identifier": "http:default",
               "allow": [
                 {
-                  "url": "https://daily-cloudcode-pa.sandbox.googleapis.com"
+                  "url": "https://daily-cloudcode-pa.sandbox.googleapis.com/*"
                 },
                 {
-                  "url": "https://oauth2.googleapis.com/token"
+                  "url": "https://oauth2.googleapis.com/*"
                 },
                 {
-                  "url": "https://www.googleapis.com/oauth2/v2/userinfo"
+                  "url": "https://www.googleapis.com/*"
+                },
+                {
+                  "url": "https://generativelanguage.googleapis.com/*"
                 }
               ]
             }

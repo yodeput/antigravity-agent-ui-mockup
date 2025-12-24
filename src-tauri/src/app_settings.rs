@@ -4,17 +4,17 @@ use std::path::PathBuf;
 use std::sync::Mutex;
 use tauri::AppHandle;
 
-/// 应用程序设置
+/// Application settings
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
 pub struct AppSettings {
-    /// 是否启用系统托盘
+    /// Whether to enable system tray
     pub system_tray_enabled: bool,
-    /// 是否启用静默启动（启动时最小化到托盘或后台）
+    /// Whether to enable silent start (minimize to tray or background on startup)
     pub silent_start_enabled: bool,
-    /// Debug 模式：记录 debug 级别日志（写入文件）
+    /// Debug mode: record debug level logs (write to file)
     pub debug_mode: bool,
-    /// 隐私模式：用户信息打码（邮箱/用户名）
+    /// Privacy mode: user information obfuscation (email/username)
     pub private_mode: bool,
 }
 
@@ -45,16 +45,16 @@ pub fn load_settings_from_disk(config_path: &PathBuf) -> AppSettings {
 }
 
 impl AppSettings {
-    /// 验证设置的有效性，确保不会出现危险的配置组合
+    /// Validate settings to ensure no dangerous configuration combinations
     pub fn validate(&mut self) -> bool {
         let mut changed = false;
 
-        // 如果启用了静默启动但未启用系统托盘，这是危险的配置
-        // 自动禁用静默启动以确保安全
+        // If silent start is enabled but system tray is disabled, this is a dangerous configuration
+        // Automatically disable silent start to ensure safety
         if self.silent_start_enabled && !self.system_tray_enabled {
             tracing::warn!(
                 target: "app_settings::validate",
-                "检测到危险的配置组合：静默启动已启用但系统托盘未启用。自动禁用静默启动以确保安全。"
+                "Detected dangerous configuration combination: silent start enabled but system tray is disabled. Automatically disabling silent start for safety."
             );
             self.silent_start_enabled = false;
             changed = true;
@@ -64,26 +64,26 @@ impl AppSettings {
     }
 }
 
-/// 应用程序设置管理器
+/// Application settings manager
 pub struct AppSettingsManager {
     settings: Mutex<AppSettings>,
     config_path: PathBuf,
 }
 
 impl AppSettingsManager {
-    /// 创建新的设置管理器
+    /// Create a new settings manager
     pub fn new(_app_handle: &AppHandle) -> Self {
-        // 使用统一的配置目录
+        // Use the unified configuration directory
         let config_path = crate::directories::get_app_settings_file();
 
-        // 尝试加载现有设置
+        // Try to load existing settings
         let mut settings = load_settings_from_disk(&config_path);
 
         // 验证并修正已存在的设置
         if settings.validate() {
             tracing::warn!(
                 target: "app_settings::init",
-                "加载的设置包含危险配置，已自动修正"
+                "Loaded settings contain dangerous configurations, automatically corrected"
             );
         }
 
@@ -93,25 +93,25 @@ impl AppSettingsManager {
         }
     }
 
-    /// 获取当前设置的副本
+    /// Get a copy of the current settings
     pub fn get_settings(&self) -> AppSettings {
         self.settings.lock().unwrap().clone()
     }
 
-    /// 更新设置
+    /// Update settings
     pub fn update_settings<F>(&self, update_fn: F) -> Result<(), String>
     where
         F: FnOnce(&mut AppSettings),
     {
         let mut settings = self.settings.lock().unwrap();
 
-        // 记录更新前的状态用于日志
+        // Record the old state for logging
         let old_silent_start = settings.silent_start_enabled;
         let old_system_tray = settings.system_tray_enabled;
 
         update_fn(&mut settings);
 
-        // 验证设置的有效性，如果返回 true 表示有修改
+        // Validate settings and log if any changes were made
         if settings.validate() {
             tracing::info!(
                 target: "app_settings::update",
@@ -119,19 +119,19 @@ impl AppSettingsManager {
                 old_system_tray = old_system_tray,
                 new_silent_start = settings.silent_start_enabled,
                 new_system_tray = settings.system_tray_enabled,
-                "设置验证后已自动修正"
+                "Settings validated and automatically corrected"
             );
         }
 
-        // 保存到文件
+        // Save to file
         let json = serde_json::to_string_pretty(&*settings)
-            .map_err(|e| format!("序列化设置失败: {}", e))?;
+            .map_err(|e| format!("Failed to serialize settings: {}", e))?;
 
         if let Some(parent) = self.config_path.parent() {
-            fs::create_dir_all(parent).map_err(|e| format!("创建目录失败: {}", e))?;
+            fs::create_dir_all(parent).map_err(|e| format!("Failed to create directory: {}", e))?;
         }
 
-        fs::write(&self.config_path, json).map_err(|e| format!("写入设置文件失败: {}", e))?;
+        fs::write(&self.config_path, json).map_err(|e| format!("Failed to write settings file: {}", e))?;
 
         Ok(())
     }

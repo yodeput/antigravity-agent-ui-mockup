@@ -19,8 +19,8 @@ pub struct AntigravityAccount {
     pub name: String,
     pub email: String,
     pub api_key: String,
-    pub profile_url: String,   // Base64 编码的头像
-    pub user_settings: String, // 编码后的用户设置
+    pub profile_url: String,   // Base64 encoded avatar
+    pub user_settings: String, // Base64 encoded user settings
     pub created_at: String,
     pub last_switched: String,
 }
@@ -35,7 +35,7 @@ pub struct AppState {
 
 impl Default for AppState {
     fn default() -> Self {
-        // 使用统一的配置目录
+        // Use the unified configuration directory
         let config_dir = directories::get_config_directory();
 
         Self {

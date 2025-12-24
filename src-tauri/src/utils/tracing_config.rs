@@ -1,30 +1,30 @@
-//! Tracing 配置模块
-//! 提供统一的结构化日志配置和初始化
+//! Tracing configuration module
+//! Provides unified structured logging configuration and initialization
 
-/// 记录系统启动信息
+/// Log system startup information
 pub fn log_system_info() {
     tracing::info!(
         target: "app::startup",
         version = env!("CARGO_PKG_VERSION"),
-        "🚀 启动 Antigravity Agent"
+        "🚀 Starting Antigravity Agent"
     );
     tracing::info!(
         target: "app::startup",
         os = std::env::consts::OS,
         arch = std::env::consts::ARCH,
-        "🖥️ 系统信息"
+        "🖥️ System information"
     );
     tracing::info!(
         target: "app::startup",
-        "📁 配置目录已初始化"
+        "📁 Config directory initialized"
     );
     tracing::info!(
         target: "app::startup",
-        "📁 Tracing 日志系统已启用"
+        "📁 Tracing log system enabled"
     );
 }
 
-/// 记录数据库操作
+/// Log database operation
 #[allow(dead_code)]
 pub fn log_database_operation(operation: &str, table: Option<&str>, success: bool) {
     match (table, success) {
@@ -34,7 +34,7 @@ pub fn log_database_operation(operation: &str, table: Option<&str>, success: boo
                 operation = operation,
                 table = table,
                 success = true,
-                "🗄️ 数据库操作成功"
+                "🗄️ Database operation successful"
             );
         }
         (Some(table), false) => {
@@ -43,7 +43,7 @@ pub fn log_database_operation(operation: &str, table: Option<&str>, success: boo
                 operation = operation,
                 table = table,
                 success = false,
-                "❌ 数据库操作失败"
+                "❌ Database operation failed"
             );
         }
         (None, true) => {
@@ -51,7 +51,7 @@ pub fn log_database_operation(operation: &str, table: Option<&str>, success: boo
                 target: "database::operation",
                 operation = operation,
                 success = true,
-                "🗄️ 数据库操作成功"
+                "🗄️ Database operation successful"
             );
         }
         (None, false) => {
@@ -59,7 +59,7 @@ pub fn log_database_operation(operation: &str, table: Option<&str>, success: boo
                 target: "database::operation",
                 operation = operation,
                 success = false,
-                "❌ 数据库操作失败"
+                "❌ Database operation failed"
             );
         }
     }

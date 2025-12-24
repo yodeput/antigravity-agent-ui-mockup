@@ -1,8 +1,8 @@
-/// 数据库字段常量
+/// Database field constants
 pub mod database {
-    /// 认证状态
+    /// Authentication status
     pub const AUTH_STATUS: &str = "antigravityAuthStatus";
 
-    /// Agent 状态同步
+    /// Agent state synchronization
     pub const AGENT_STATE: &str = "jetskiStateSync.agentManagerInitState";
 }

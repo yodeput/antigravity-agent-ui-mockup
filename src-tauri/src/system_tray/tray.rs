@@ -1,53 +1,53 @@
-//! 系统托盘模块
+//! System tray module
 //!
-//! 使用 Tauri 2.9 内置的 tray API 实现后端控制托盘
+//! Uses Tauri 2.9 built-in tray API for backend tray control
 
 use crate::app_settings::AppSettingsManager;
 use tauri::menu::{Menu, MenuBuilder, MenuItem};
 use tauri::tray::{TrayIcon, TrayIconBuilder};
 use tauri::{AppHandle, Emitter, Manager};
 
-/// 创建系统托盘（返回托盘实例）
+/// Create system tray (returns tray instance)
 pub fn create_tray_with_return(app: &AppHandle) -> Result<TrayIcon, String> {
-    // 创建基础菜单（账户列表将由前端动态更新）
+    // Create basic menu (account list will be dynamically updated by frontend)
     let menu = create_basic_menu(app)?;
 
-    // 构建托盘图标
+    // Build tray icon
     let tray = TrayIconBuilder::with_id("main")
         .menu(&menu)
         .on_menu_event(handle_tray_menu_event)
         .show_menu_on_left_click(true)
         .build(app)
-        .map_err(|e| format!("创建系统托盘失败: {e}"))?;
+        .map_err(|e| format!("Failed to create system tray: {e}"))?;
 
-    // 设置托盘图标
+    // Set tray icon
     if let Some(icon) = app.default_window_icon() {
         tray.set_icon(Some(icon.clone()))
-            .map_err(|e| format!("设置托盘图标失败: {e}"))?;
+            .map_err(|e| format!("Failed to set tray icon: {e}"))?;
     }
 
     Ok(tray)
 }
 
-/// 创建基础菜单（不含账户列表）
+/// Create basic menu (without account list)
 fn create_basic_menu(app: &AppHandle) -> Result<Menu<tauri::Wry>, String> {
     MenuBuilder::new(app)
         .item(
-            &MenuItem::with_id(app, "show_main", "显示主窗口", true, None::<&str>)
-                .map_err(|e| format!("创建显示主窗口菜单失败: {e}"))?,
+            &MenuItem::with_id(app, "show_main", "Show Main Window", true, None::<&str>)
+                .map_err(|e| format!("Failed to create show main window menu: {e}"))?,
         )
         .separator()
         .item(
-            &MenuItem::with_id(app, "quit", "退出应用", true, None::<&str>)
-                .map_err(|e| format!("创建退出菜单失败: {e}"))?,
+            &MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)
+                .map_err(|e| format!("Failed to create quit menu: {e}"))?,
         )
         .build()
-        .map_err(|e| format!("构建基础菜单失败: {e}"))
+        .map_err(|e| format!("Failed to build basic menu: {e}"))
 }
 
-/// 处理托盘菜单事件
+/// Handle tray menu events
 fn handle_tray_menu_event(app: &AppHandle, event: tauri::menu::MenuEvent) {
-    tracing::info!("处理托盘菜单事件: {}", event.id.0);
+    tracing::info!("Handling tray menu event: {}", event.id.0);
 
     match event.id.0.as_str() {
         "show_main" => {
@@ -58,50 +58,50 @@ fn handle_tray_menu_event(app: &AppHandle, event: tauri::menu::MenuEvent) {
             }
         }
         "quit" => {
-            tracing::info!("退出应用");
+            tracing::info!("Quitting application");
             app.exit(0);
         }
-        // 账户切换事件
+        // Account switch event
         account_id if account_id.starts_with("account_") => {
             let account_email = account_id.strip_prefix("account_").unwrap_or("");
-            tracing::info!("请求切换到账户: {account_email}");
+            tracing::info!("Requesting switch to account: {account_email}");
 
-            // 发射事件到前端
+            // Emit event to frontend
             if let Err(e) = app.emit("tray-switch-account", account_email) {
-                tracing::error!("发射账户切换事件失败: {e}");
+                tracing::error!("Failed to emit account switch event: {e}");
             }
         }
         _ => {
-            tracing::warn!("未处理的菜单事件: {}", event.id.0);
+            tracing::warn!("Unhandled menu event: {}", event.id.0);
         }
     }
 }
 
-/// 更新托盘菜单（添加账户列表）
+/// Update tray menu (add account list)
 pub fn update_tray_menu(app: &AppHandle, accounts: Vec<String>) -> Result<(), String> {
-    // 检查托盘是否应该启用
+    // Check if tray should be enabled
     let settings_manager = app.state::<AppSettingsManager>();
     let settings = settings_manager.get_settings();
 
     if !settings.system_tray_enabled {
-        tracing::info!("托盘已禁用，跳过菜单更新");
+        tracing::info!("Tray disabled, skipping menu update");
         return Ok(());
     }
 
     let Some(tray) = app.tray_by_id("main") else {
-        return Err("未找到系统托盘".to_string());
+        return Err("System tray not found".to_string());
     };
 
-    // 创建包含账户列表的完整菜单
+    // Create complete menu with account list
     let mut menu_builder = MenuBuilder::new(app);
 
-    // 显示主窗口
+    // Show main window
     menu_builder = menu_builder.item(
-        &MenuItem::with_id(app, "show_main", "显示主窗口", true, None::<&str>)
-            .map_err(|e| format!("创建显示主窗口菜单失败: {e}"))?,
+        &MenuItem::with_id(app, "show_main", "Show Main Window", true, None::<&str>)
+            .map_err(|e| format!("Failed to create show main window menu: {e}"))?,
     );
 
-    // 添加账户列表
+    // Add account list
     if !accounts.is_empty() {
         menu_builder = menu_builder.separator();
 
@@ -115,30 +115,30 @@ pub fn update_tray_menu(app: &AppHandle, accounts: Vec<String>) -> Result<(), St
                     true,
                     None::<&str>,
                 )
-                .map_err(|e| format!("创建账户菜单失败: {e}"))?,
+                .map_err(|e| format!("Failed to create account menu: {e}"))?,
             );
         }
     }
 
-    // 退出应用
+    // Quit application
     menu_builder = menu_builder.separator().item(
-        &MenuItem::with_id(app, "quit", "退出应用", true, None::<&str>)
-            .map_err(|e| format!("创建退出菜单失败: {e}"))?,
+        &MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)
+            .map_err(|e| format!("Failed to create quit menu: {e}"))?,
     );
 
-    // 构建并设置新菜单
+    // Build and set new menu
     let new_menu = menu_builder
         .build()
-        .map_err(|e| format!("构建新菜单失败: {e}"))?;
+        .map_err(|e| format!("Failed to build new menu: {e}"))?;
 
     tray.set_menu(Some(new_menu))
-        .map_err(|e| format!("设置托盘菜单失败: {e}"))?;
+        .map_err(|e| format!("Failed to set tray menu: {e}"))?;
 
-    tracing::info!("✅ 托盘菜单已更新，包含 {} 个账户", accounts.len());
+    tracing::info!("✅ Tray menu updated with {} accounts", accounts.len());
     Ok(())
 }
 
-/// 邮箱打码函数
+/// Email masking function
 fn mask_email(email: &str) -> String {
     let parts: Vec<&str> = email.split('@').collect();
     if parts.len() != 2 {

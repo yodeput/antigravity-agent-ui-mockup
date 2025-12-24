@@ -15,11 +15,8 @@ interface ModelOption {
 
 // Aspect ratio options
 const ASPECT_RATIOS = [
-  { id: '1:1', name: '1:1 (Square)', width: 512, height: 512 },
-  { id: '16:9', name: '16:9 (Landscape)', width: 768, height: 432 },
-  { id: '9:16', name: '9:16 (Portrait)', width: 432, height: 768 },
-  { id: '4:3', name: '4:3 (Standard)', width: 640, height: 480 },
-  { id: '3:4', name: '3:4 (Portrait Standard)', width: 480, height: 640 },
+  { id: '9:16', name: 'Phone', width: 432, height: 768 },
+  { id: '16:9', name: 'Desktop', width: 768, height: 432 },
 ] as const;
 
 type AspectRatioId = typeof ASPECT_RATIOS[number]['id'];
@@ -39,18 +36,7 @@ const DESIGN_LANGUAGES = [
 type DesignLanguageId = typeof DESIGN_LANGUAGES[number]['id'];
 
 // System prompt for UI/UX mockup generation
-export const MOCKUP_SYSTEM_PROMPT = `You are an expert UI/UX designer specializing in creating high-fidelity mockups. When generating a UI/UX mockup:
-
-1. Follow the specified design language and visual principles
-2. Use appropriate spacing, typography, and color schemes
-3. Include realistic content placeholders
-4. Ensure the design is visually appealing and professional
-5. Consider accessibility and usability best practices
-6. Add subtle shadows, borders, and visual hierarchy
-7. Include appropriate icons and visual elements
-8. Make the design feel polished and production-ready
-
-Generate a clean, professional UI/UX mockup based on the user's description.`;
+export const MOCKUP_SYSTEM_PROMPT = `YYou are an AI agent specialized in creating mobile app designs. Your role is to assist users in conceptualizing, developing, and refining mobile app UI/UX designs. Start by generating innovative design ideas and proceed to create wireframes that establish basic layouts and user flow. Transform wireframes into high-fidelity mockups, featuring detailed design elements and interactions. Regularly review and suggest improvements to the design, ensuring it meets modern standards in user experience and visual aesthetics. Your goal is to help users create apps that are both functional and beautiful.`;
 
 interface MockupGeneratorProps {
   className?: string;
@@ -72,6 +58,7 @@ const MockupGenerator: React.FC<MockupGeneratorProps> = ({ className }) => {
   const [models, setModels] = useState<ModelOption[]>([]);
   const [isLoadingModels, setIsLoadingModels] = useState(false);
   const [modelsError, setModelsError] = useState<string | null>(null);
+  const [project, setProject] = useState<string>('');
   
   const [selectedModel, setSelectedModel] = useState<string>('');
   const [selectedAspectRatio, setSelectedAspectRatio] = useState<AspectRatioId>(ASPECT_RATIOS[0].id);
@@ -95,12 +82,13 @@ const MockupGenerator: React.FC<MockupGeneratorProps> = ({ className }) => {
       try {
         // First, get the project from loadCodeAssist
         const codeAssistResponse = await CloudCodeAPI.loadCodeAssist(currentAccount.auth.access_token);
-        const project = codeAssistResponse.cloudaicompanionProject;
+        const projectId = codeAssistResponse.cloudaicompanionProject;
+        setProject(projectId);
 
         // Then fetch available models
         const response = await CloudCodeAPI.fetchAvailableModels(
           currentAccount.auth.access_token,
-          project
+          projectId
         );
 
         // Extract image generation models from the response
@@ -151,36 +139,102 @@ const MockupGenerator: React.FC<MockupGeneratorProps> = ({ className }) => {
       return;
     }
 
+    if (!currentAccount?.auth?.access_token) {
+      setError('No authenticated account found');
+      return;
+    }
+
+    if (!selectedModel) {
+      setError('Please select a model');
+      return;
+    }
+
     setIsGenerating(true);
     setError(null);
 
     try {
-      // Simulate API call for now - this would be replaced with actual API integration
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Get the selected aspect ratio dimensions
+      // Get the selected aspect ratio and design language
       const aspectRatio = ASPECT_RATIOS.find(r => r.id === selectedAspectRatio) || ASPECT_RATIOS[0];
       const designLang = DESIGN_LANGUAGES.find(d => d.id === selectedDesignLanguage)?.name || selectedDesignLanguage;
       
-      // For demo purposes, we'll show a placeholder result
-      // In a real implementation, this would call the actual image generation API
-      setResult({
-        imageUrl: 'data:image/svg+xml,' + encodeURIComponent(`
-          <svg width="${aspectRatio.width}" height="${aspectRatio.height}" xmlns="http://www.w3.org/2000/svg">
-            <rect width="100%" height="100%" fill="#f0f0f0"/>
-            <text x="50%" y="45%" font-family="Arial, sans-serif" font-size="20" fill="#666" text-anchor="middle">UI/UX Mockup Preview</text>
-            <text x="50%" y="55%" font-family="Arial, sans-serif" font-size="14" fill="#999" text-anchor="middle">${designLang}</text>
-            <text x="50%" y="65%" font-family="Arial, sans-serif" font-size="12" fill="#bbb" text-anchor="middle">${aspectRatio.width}x${aspectRatio.height}</text>
-          </svg>
-        `),
-        prompt: prompt,
+      // Build a comprehensive UI/UX prompt
+      const fullPrompt = `${MOCKUP_SYSTEM_PROMPT}
+
+Design Language: ${designLang}
+Aspect Ratio: ${aspectRatio.id} (${aspectRatio.width}x${aspectRatio.height})
+
+User Request: ${prompt}
+
+Generate a high-fidelity UI design based on the above specifications. The design should be clean, professional, and production-ready.`;
+
+      logger.info('Generating image', {
+        module: 'MockupGenerator',
         model: selectedModel,
         aspectRatio: selectedAspectRatio,
-        designLanguage: selectedDesignLanguage,
-        timestamp: new Date(),
+        designLanguage: selectedDesignLanguage
       });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to generate mockup');
+
+      // Call the actual image generation API
+      const response = await CloudCodeAPI.generateImage(
+        currentAccount.auth.access_token,
+        selectedModel,
+        fullPrompt,
+        project,
+        selectedAspectRatio
+      );
+
+      // Extract the generated image from the response
+      console.log('[MockupGenerator] API response:', response);
+      
+      // Handle different response formats
+      let imageUrl: string | null = null;
+      
+      // Format 1: Standard Gemini format with candidates
+      if (response.candidates && response.candidates.length > 0) {
+        const candidate = response.candidates[0];
+        const imagePart = candidate.content?.parts?.find(part => part.inlineData);
+        
+        if (imagePart?.inlineData) {
+          imageUrl = `data:${imagePart.inlineData.mimeType};base64,${imagePart.inlineData.data}`;
+        }
+      }
+      
+      // Format 2: Direct image data in response (sandbox API)
+      if (!imageUrl && (response as any).imageData) {
+        const imgData = (response as any).imageData;
+        imageUrl = `data:${imgData.mimeType || 'image/png'};base64,${imgData.data}`;
+      }
+      
+      // Format 3: Direct base64 string
+      if (!imageUrl && (response as any).image) {
+        imageUrl = `data:image/png;base64,${(response as any).image}`;
+      }
+      
+      if (imageUrl) {
+        setResult({
+          imageUrl,
+          prompt: prompt,
+          model: selectedModel,
+          aspectRatio: selectedAspectRatio,
+          designLanguage: selectedDesignLanguage,
+          timestamp: new Date(),
+        });
+
+        logger.info('Image generated successfully', {
+          module: 'MockupGenerator',
+          model: selectedModel
+        });
+      } else {
+        console.error('[MockupGenerator] Could not extract image from response:', response);
+        throw new Error('No image data in response');
+      }
+    } catch (err: any) {
+      const errorMessage = err?.error?.message || err?.message || 'Failed to generate mockup';
+      setError(errorMessage);
+      logger.error('Failed to generate image', {
+        module: 'MockupGenerator',
+        error: errorMessage
+      });
     } finally {
       setIsGenerating(false);
     }
@@ -189,9 +243,19 @@ const MockupGenerator: React.FC<MockupGeneratorProps> = ({ className }) => {
   const handleDownload = () => {
     if (!result?.imageUrl) return;
     
+    // Determine file extension from the data URL
+    let extension = 'png';
+    if (result.imageUrl.includes('image/jpeg')) {
+      extension = 'jpg';
+    } else if (result.imageUrl.includes('image/webp')) {
+      extension = 'webp';
+    } else if (result.imageUrl.includes('image/svg')) {
+      extension = 'svg';
+    }
+    
     const link = document.createElement('a');
     link.href = result.imageUrl;
-    link.download = `mockup-${Date.now()}.svg`;
+    link.download = `mockup-${Date.now()}.${extension}`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

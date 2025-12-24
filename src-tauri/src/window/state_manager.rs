@@ -1,12 +1,12 @@
-// 窗口状态管理模块
-// 负责保存和恢复应用程序窗口状态
+// Window state management module
+// Responsible for saving and restoring application window state
 
 use serde::{Deserialize, Serialize};
 use std::fs;
 
 use crate::config_manager::ConfigManager;
 
-// 窗口状态结构
+// Window state structure
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WindowState {
     pub x: f64,
@@ -29,18 +29,18 @@ impl Default for WindowState {
 }
 
 impl WindowState {
-    /// 验证窗口状态是否有效
+    /// Validate if window state is valid
     ///
-    /// 过滤以下无效状态：
-    /// - 窗口位置超出合理范围（如 -32000，表示窗口被隐藏）
-    /// - 窗口大小过小（宽度或高度 < 400）
-    /// - 窗口大小过大（宽度 > 4000 或高度 > 3000）
+    /// Filters the following invalid states:
+    /// - Window position out of reasonable range (e.g. -32000, means window is hidden)
+    /// - Window size too small (width or height < 400)
+    /// - Window size too large (width > 4000 or height > 3000)
     pub fn is_valid(&self) -> bool {
-        // 检查位置是否在合理范围内（-1000 到 10000）
+        // Check if position is in reasonable range (-1000 to 10000)
         let position_valid =
             self.x > -1000.0 && self.x < 10000.0 && self.y > -1000.0 && self.y < 10000.0;
 
-        // 检查窗口大小是否合理（400x400 到 4000x3000）
+        // Check if window size is reasonable (400x400 to 4000x3000)
         let size_valid = self.width >= 400.0
             && self.width <= 4000.0
             && self.height >= 400.0
@@ -50,51 +50,51 @@ impl WindowState {
     }
 }
 
-/// 保存窗口状态
+/// Save window state
 pub async fn save_window_state(state: WindowState) -> Result<(), String> {
-    // 验证窗口状态是否有效，拒绝保存异常值
+    // Validate if window state is valid, refuse to save abnormal values
     if !state.is_valid() {
         println!(
-            "⚠️ 检测到无效的窗口状态，跳过保存: 位置({:.1}, {:.1}), 大小({:.1}x{:.1})",
+            "⚠️ Detected invalid window state, skipping save: position({:.1}, {:.1}), size({:.1}x{:.1})",
             state.x, state.y, state.width, state.height
         );
-        return Ok(()); // 不返回错误，静默忽略
+        return Ok(()); // Don't return error, silently ignore
     }
 
-    // 使用 ConfigManager 统一管理配置目录
+    // Use ConfigManager to unify config directory management
     let config_manager = ConfigManager::new()?;
     let state_file = config_manager.window_state_file();
 
     let json_content =
-        serde_json::to_string(&state).map_err(|e| format!("序列化窗口状态失败: {}", e))?;
+        serde_json::to_string(&state).map_err(|e| format!("Failed to serialize window state: {}", e))?;
 
-    fs::write(state_file, json_content).map_err(|e| format!("保存窗口状态失败: {}", e))?;
+    fs::write(state_file, json_content).map_err(|e| format!("Failed to save window state: {}", e))?;
 
     println!(
-        "💾 窗口状态已保存: 位置({:.1}, {:.1}), 大小({:.1}x{:.1}), 最大化:{}",
+        "💾 Window state saved: position({:.1}, {:.1}), size({:.1}x{:.1}), maximized:{}",
         state.x, state.y, state.width, state.height, state.maximized
     );
 
     Ok(())
 }
 
-/// 加载窗口状态
+/// Load window state
 pub async fn load_window_state() -> Result<WindowState, String> {
-    // 使用 ConfigManager 统一管理配置目录
+    // Use ConfigManager to unify config directory management
     let config_manager = ConfigManager::new()?;
     let state_file = config_manager.window_state_file();
 
     if state_file.exists() {
         let content =
-            fs::read_to_string(&state_file).map_err(|e| format!("读取窗口状态文件失败: {}", e))?;
+            fs::read_to_string(&state_file).map_err(|e| format!("Failed to read window state file: {}", e))?;
 
         let state: WindowState =
-            serde_json::from_str(&content).map_err(|e| format!("解析窗口状态失败: {}", e))?;
+            serde_json::from_str(&content).map_err(|e| format!("Failed to parse window state: {}", e))?;
 
-        // 验证加载的状态是否有效
+        // Validate if loaded state is valid
         if !state.is_valid() {
             println!(
-                "⚠️ 加载的窗口状态无效（位置({:.1}, {:.1}), 大小({:.1}x{:.1})），使用默认状态",
+                "⚠️ Loaded window state is invalid (position({:.1}, {:.1}), size({:.1}x{:.1})), using default state",
                 state.x, state.y, state.width, state.height
             );
             return Ok(WindowState::default());

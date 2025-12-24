@@ -1,4 +1,4 @@
-//! 数据库监控模块 - 简化版本：newData, oldData, diff
+// Database monitoring module - Simplified version: newData, oldData, diff
 
 use serde::Serialize;
 use serde_json::Value;
@@ -8,7 +8,7 @@ use tokio::sync::Mutex;
 use tokio::time::{interval, Duration};
 use tracing::{error, info, warn};
 
-// 数据差异结构
+// Data difference structure
 #[derive(Debug, Clone, Serialize)]
 pub struct DataDiff {
     pub has_changes: bool,
@@ -16,7 +16,7 @@ pub struct DataDiff {
     pub summary: String,
 }
 
-// 数据库监控器
+// Database monitor
 pub struct DatabaseMonitor {
     app_handle: AppHandle,
     last_data: Arc<Mutex<Option<Value>>>,
@@ -24,7 +24,7 @@ pub struct DatabaseMonitor {
 }
 
 impl DatabaseMonitor {
-    /// 创建新的数据库监控器
+    /// Create a new database monitor
     pub fn new(app_handle: AppHandle) -> Self {
         Self {
             app_handle,
@@ -33,56 +33,56 @@ impl DatabaseMonitor {
         }
     }
 
-    /// 启动数据库监控
+    /// Start database monitoring
     pub async fn start_monitoring(&self) -> Result<(), Box<dyn std::error::Error>> {
-        info!("🔧 启动数据库自动监控（简化版）");
+        info!("🔧 Start database automatic monitoring (simplified version)");
 
         let last_data = self.last_data.clone();
         let is_running = self.is_running.clone();
         let app_handle = self.app_handle.clone();
 
-        // 标记监控为运行状态
+        // Mark the monitor as running
         *is_running.lock().await = true;
 
         tokio::spawn(async move {
-            let mut interval = interval(Duration::from_secs(3)); // 3秒间隔，更敏感
+            let mut interval = interval(Duration::from_secs(3)); // 3 seconds interval, more sensitive
 
             loop {
                 interval.tick().await;
 
-                // 检查监控是否还在运行
+                // Check if the monitor is still running
                 let running = is_running.lock().await;
                 if !*running {
-                    info!("⏹️ 数据库监控已停止");
+                    info!("⏹️ Database monitoring stopped");
                     break;
                 }
                 drop(running);
 
-                // 获取当前完整数据
+                // Get current complete data
                 match Self::get_complete_data().await {
                     Ok(new_data) => {
                         let mut last = last_data.lock().await;
 
-                        // 检查是否有数据变化
+                        // Check for data changes
                         if let Some(ref old_data) = *last {
-                            // 分析差异
+                            // Analyze differences
                             let diff = Self::analyze_diff(old_data, &new_data);
 
                             if diff.has_changes {
-                                info!("📢 检测到数据库变化: {}", diff.summary);
+                                info!("📢 Detected database changes: {}", diff.summary);
 
-                                // 构建简化的事件数据：newData, oldData, diff
+                                // Build simplified event data: newData, oldData, diff
                                 let event_data = serde_json::json!({
                                     "newData": new_data,
                                     "oldData": old_data,
                                     "diff": diff
                                 });
 
-                                // 推送事件到前端
+                                // Push event to frontend
                                 if let Err(e) = app_handle.emit("database-changed", &event_data) {
-                                    error!("❌ 推送数据库变化事件失败: {}", e);
+                                    error!("❌ Failed to push database change event: {}", e);
                                 } else {
-                                    info!("✅ 数据库变化事件推送成功");
+                                    info!("✅ Database change event pushed successfully");
                                 }
                             }
                         }
@@ -90,7 +90,7 @@ impl DatabaseMonitor {
                         *last = Some(new_data);
                     }
                     Err(e) => {
-                        warn!("⚠️ 获取完整数据失败: {}", e);
+                        warn!("⚠️ Failed to get complete data: {}", e);
                     }
                 }
             }
@@ -99,15 +99,15 @@ impl DatabaseMonitor {
         Ok(())
     }
 
-    /// 停止数据库监控
+    /// Stop database monitoring
     pub async fn stop_monitoring(&self) {
-        info!("⏹️ 停止数据库自动监控");
+        info!("⏹️ Stop database automatic monitoring");
         *self.is_running.lock().await = false;
     }
 
-    /// 获取完整数据库数据
+    /// Get complete database data
     async fn get_complete_data() -> Result<Value, Box<dyn std::error::Error + Send + Sync>> {
-        // 检测数据库路径
+        // Detect database path
         let db_path = if cfg!(windows) {
             dirs::home_dir()
                 .unwrap_or_default()
@@ -131,16 +131,16 @@ impl DatabaseMonitor {
         if db_path.exists() {
             let conn = rusqlite::Connection::open(&db_path)?;
 
-            // 查询所有数据（完整的ItemTable）
+            // Query all data (complete ItemTable)
             let mut stmt = conn.prepare("SELECT key, value FROM ItemTable ORDER BY key")?;
 
             let rows: Vec<(String, String)> = stmt
                 .query_map([], |row| Ok((row.get(0)?, row.get(1)?)))?
                 .collect::<Result<Vec<_>, _>>()?;
 
-            // 构建完整数据对象
+            // Build complete data object
             for (key, value) in rows {
-                // 尝试解析为JSON，如果失败则保持原始字符串
+                // Try to parse as JSON, keep original string if parsing fails
                 let json_value: Value = match serde_json::from_str(&value) {
                     Ok(parsed) => parsed,
                     Err(_) => Value::String(value.clone()),
@@ -153,11 +153,11 @@ impl DatabaseMonitor {
         Ok(Value::Object(complete_data))
     }
 
-    /// 分析两个数据之间的差异
+    /// Analyze the differences between two data sets
     fn analyze_diff(old: &Value, new: &Value) -> DataDiff {
         let mut changed_fields = Vec::new();
 
-        // 比较数据
+        // Compare data
         match (old, new) {
             (Value::Object(old_obj), Value::Object(new_obj)) => {
                 // 检查新增的字段

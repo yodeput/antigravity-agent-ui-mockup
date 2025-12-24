@@ -78,7 +78,7 @@ pub fn init(app: &mut App) -> std::result::Result<(), Box<dyn std::error::Error>
     } else if settings.silent_start_enabled && settings.system_tray_enabled {
         tracing::info!(target: "app::setup::silent_start", "Silent start enabled (system tray enabled), preparing to hide main window");
 
-        // 延迟执行静默启动，确保在窗口状态恢复完成后隐藏窗口
+        // Delay silent start to ensure window state restoration and other initialization complete
         let app_handle_for_silent = app.handle().clone();
 
         tauri::async_runtime::spawn(async move {

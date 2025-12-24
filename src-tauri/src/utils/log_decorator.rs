@@ -1,8 +1,8 @@
-//! 日志装饰器工具
-//! 使用 tracing 提供命令执行的自动日志记录功能，包含智能脱敏
+//! Log decorator utilities
+//! Uses tracing to provide automatic logging for command execution, with smart sanitization
 
-/// 替代原来的 log_async_command! 宏（带脱敏）
-/// 使用简洁的实现来避免类型推断问题
+/// Replacement for the original log_async_command! macro (with sanitization)
+/// Uses a concise implementation to avoid type inference issues
 #[macro_export]
 macro_rules! log_async_command {
     ($command_name:expr, $future:expr) => {{
@@ -10,22 +10,22 @@ macro_rules! log_async_command {
         tracing::info!(
             target: "command::start",
             command = $command_name,
-            "🔧 开始执行命令"
+            "🔧 Starting command execution"
         );
 
-        // 直接处理future，避免类型推断问题
+        // Process future directly to avoid type inference issues
         let (result, duration) = match $future.await {
             Ok(r) => (Ok(r), start_time.elapsed()),
             Err(e) => {
                 let duration = start_time.elapsed();
-                // 简化错误处理，避免字符串操作的类型推断
-                let error_msg = format!("命令执行失败");
+                // Simplified error handling to avoid string operation type inference
+                let error_msg = format!("Command execution failed");
                 tracing::error!(
                     target: "command::error",
                     command = $command_name,
                     duration_ms = duration.as_millis(),
                     error = %e,
-                    "❌ 命令失败: {}", error_msg
+                    "❌ Command failed: {}", error_msg
                 );
                 (Err(e), duration)
             }
@@ -36,7 +36,7 @@ macro_rules! log_async_command {
                 target: "command::success",
                 command = $command_name,
                 duration_ms = duration.as_millis(),
-                "✅ 命令完成"
+                "✅ Command completed"
             );
         }
 
@@ -44,7 +44,7 @@ macro_rules! log_async_command {
     }};
 }
 
-/// 带用户上下文的日志记录（带脱敏）
+/// Log recording with user context (with sanitization)
 #[macro_export]
 macro_rules! log_user_command {
     ($command_name:expr, $user_email:expr, $future:expr) => {{
@@ -55,7 +55,7 @@ macro_rules! log_user_command {
             target: "user_command::start",
             command = $command_name,
             user_email = %masked_email,
-            "🔧 用户操作开始"
+            "🔧 User operation started"
         );
 
         match $future.await {
@@ -65,19 +65,19 @@ macro_rules! log_user_command {
                     target: "user_command::success",
                     command = $command_name,
                     duration_ms = duration.as_millis(),
-                    "✅ 用户操作完成"
+                    "✅ User operation completed"
                 );
                 Ok(result)
             }
             Err(e) => {
                 let duration = start_time.elapsed();
-                let error_msg = format!("用户操作失败");
+                let error_msg = format!("User operation failed");
                 tracing::error!(
                     target: "user_command::error",
                     command = $command_name,
                     duration_ms = duration.as_millis(),
                     error = %e,
-                    "❌ 用户操作失败: {}", error_msg
+                    "❌ User operation failed: {}", error_msg
                 );
                 Err(e)
             }

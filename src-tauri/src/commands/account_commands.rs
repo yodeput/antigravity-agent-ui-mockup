@@ -1,4 +1,4 @@
-//! 账户基础命令：查询、备份、恢复、切换、清理
+//! Account base commands: query, backup, restore, switch, cleanup
 
 use crate::antigravity::account::decode_jetski_state_proto;
 use base64::Engine;
@@ -9,57 +9,57 @@ use std::fs;
 use tauri::State;
 use tracing::instrument;
 
-/// 获取所有 Antigravity 账户（解码 jetskiStateSync.agentManagerInitState，返回完整 SessionResponse JSON）
+/// Get all Antigravity accounts (decode jetskiStateSync.agentManagerInitState, return complete SessionResponse JSON)
 #[tauri::command]
 #[instrument]
 pub async fn get_antigravity_accounts(
     state: State<'_, crate::AppState>,
 ) -> Result<Vec<Value>, String> {
-    tracing::debug!("📋 开始获取所有 Antigravity 账户");
+    tracing::debug!("📋 Start getting all Antigravity accounts");
 
     let start_time = std::time::Instant::now();
 
     let result = async {
         let mut accounts: Vec<(std::time::SystemTime, Value)> = Vec::new();
 
-        // 获取备份目录路径
+        // Get backup directory path
         let antigravity_dir = state.config_dir.join("antigravity-accounts");
 
         if !antigravity_dir.exists() {
-            tracing::info!("📂 备份目录不存在，返回空列表");
+            tracing::info!("📂 Backup directory does not exist, returning empty list");
             return Ok(Vec::new());
         }
 
-        // 读取目录中的所有 JSON 文件
+        // Read all JSON files in the directory
         let entries =
-            fs::read_dir(&antigravity_dir).map_err(|e| format!("读取备份目录失败: {}", e))?;
+            fs::read_dir(&antigravity_dir).map_err(|e| format!("Failed to read backup directory: {}", e))?;
 
         for entry in entries {
-            let entry = entry.map_err(|e| format!("读取目录项失败: {}", e))?;
+            let entry = entry.map_err(|e| format!("Failed to read directory entry: {}", e))?;
             let path = entry.path();
 
-            // 只处理 JSON 文件
+            // Only process JSON files
             if path.extension().is_some_and(|ext| ext == "json") {
                 let file_name = match path.file_stem() {
                     Some(name) => name.to_string_lossy().to_string(),
                     None => continue,
                 };
 
-                tracing::debug!("📄 正在解析备份文件: {}", file_name);
+                tracing::debug!("📄 Parsing backup file: {}", file_name);
 
-                // 读取并解析 JSON 文件
+                // Read and parse JSON file
                 let content = fs::read_to_string(&path)
-                    .map_err(|e| format!("读取文件失败 {}: {}", file_name, e))?;
+                    .map_err(|e| format!("Failed to read file {}: {}", file_name, e))?;
 
                 let backup_data: Value = from_str(&content)
-                    .map_err(|e| format!("解析 JSON 失败 {}: {}", file_name, e))?;
+                    .map_err(|e| format!("Failed to parse JSON {}: {}", file_name, e))?;
 
                 let jetski_state = backup_data
                     .get("jetskiStateSync.agentManagerInitState")
                     .and_then(|v| v.as_str())
                     .ok_or_else(|| {
                         format!(
-                            "备份文件 {} 缺少 jetskiStateSync.agentManagerInitState",
+                            "Backup file {} missing jetskiStateSync.agentManagerInitState",
                             file_name
                         )
                     })?;
@@ -72,15 +72,15 @@ pub async fn get_antigravity_accounts(
 
                 accounts.push((modified_time, decoded));
 
-                tracing::info!("✅ 成功解析账户: {}", file_name);
+                tracing::info!("✅ Successfully parsed account: {}", file_name);
             }
         }
 
-        // 按文件修改时间排序（最新的在前），仅返回解码后的对象
+        // Sort by file modification time (newest first), return only decoded objects
         accounts.sort_by(|a, b| b.0.cmp(&a.0));
         let decoded_only: Vec<Value> = accounts.into_iter().map(|(_, decoded)| decoded).collect();
 
-        tracing::debug!("🎉 成功加载 {} 个账户", decoded_only.len());
+        tracing::debug!("🎉 Successfully loaded {} accounts", decoded_only.len());
 
         Ok(decoded_only)
     }
@@ -93,7 +93,7 @@ pub async fn get_antigravity_accounts(
             tracing::debug!(
                 duration_ms = duration.as_millis(),
                 account_count = accounts.len(),
-                "获取账户列表完成"
+                "Successfully got account list"
             );
             Ok(accounts)
         }
@@ -101,30 +101,30 @@ pub async fn get_antigravity_accounts(
             tracing::error!(
                 error = %e,
                 duration_ms = duration.as_millis(),
-                "获取账户列表失败"
+                "Failed to get account list"
             );
             Err(e)
         }
     }
 }
 
-/// 获取当前 Antigravity 账户信息
+/// Get current Antigravity account info
 #[tauri::command]
 #[instrument]
 pub async fn get_current_antigravity_account_info() -> Result<Value, String> {
-    tracing::info!("开始获取当前 Antigravity 信息");
+    tracing::info!("Start getting current Antigravity account info");
 
     let start_time = std::time::Instant::now();
 
     let result = async {
-        // 尝试获取 Antigravity 状态数据库路径
+        // Try to get Antigravity state database path
         let app_data = match crate::platform::get_antigravity_db_path() {
             Some(path) => path,
             None => {
-                // 如果主路径不存在，尝试其他可能的位置
+                // If main path doesn't exist, try other possible locations
                 let possible_paths = crate::platform::get_all_antigravity_db_paths();
                 if possible_paths.is_empty() {
-                    return Err("未找到Antigravity安装位置".to_string());
+                    return Err("Antigravity installation path not found".to_string());
                 }
                 possible_paths[0].clone()
             }
@@ -132,16 +132,16 @@ pub async fn get_current_antigravity_account_info() -> Result<Value, String> {
 
         if !app_data.exists() {
             return Err(format!(
-                "Antigravity 状态数据库文件不存在: {}",
+                "Antigravity status database file not found: {}",
                 app_data.display()
             ));
         }
 
-        // 连接到 SQLite 数据库并获取认证信息
+        // Connect to SQLite database and get authentication info
         let conn = Connection::open(&app_data)
-            .map_err(|e| format!("连接数据库失败 ({}): {}", app_data.display(), e))?;
+            .map_err(|e| format!("Failed to connect to database ({}): {}", app_data.display(), e))?;
 
-        // jetski 状态（可选）
+        // jetski state (optional)
         let jetski_state: Option<String> = conn
             .query_row(
                 "SELECT value FROM ItemTable WHERE key = 'jetskiStateSync.agentManagerInitState'",
@@ -149,12 +149,12 @@ pub async fn get_current_antigravity_account_info() -> Result<Value, String> {
                 |row| row.get(0),
             )
             .optional()
-            .map_err(|e| format!("查询 jetskiStateSync.agentManagerInitState 失败: {}", e))?;
+            .map_err(|e| format!("Failed to query jetskiStateSync.agentManagerInitState: {}", e))?;
 
         let state_str = jetski_state
-            .ok_or_else(|| "未找到 jetskiStateSync.agentManagerInitState".to_string())?;
+            .ok_or_else(|| " jetskiStateSync.agentManagerInitState not found".to_string())?;
 
-        // 解码 jetski 状态（base64 + proto）；失败直接报错
+        // Decode jetski state (base64 + proto); fail directly on error
         let decoded = decode_jetski_state_proto(&state_str)?;
 
         Ok(serde_json::json!(decoded))
@@ -167,7 +167,7 @@ pub async fn get_current_antigravity_account_info() -> Result<Value, String> {
         Ok(data) => {
             tracing::info!(
                 duration_ms = duration.as_millis(),
-                "获取 Antigravity 信息完成"
+                "Successfully got Antigravity account info"
             );
             Ok(data)
         }
@@ -175,30 +175,30 @@ pub async fn get_current_antigravity_account_info() -> Result<Value, String> {
             tracing::error!(
                 error = %e,
                 duration_ms = duration.as_millis(),
-                "获取 Antigravity 信息失败"
+                "Failed to get Antigravity account info"
             );
             Err(e)
         }
     }
 }
 
-/// 备份当前 Antigravity 账户
+/// Backup current Antigravity account
 #[tauri::command]
 #[instrument]
 pub async fn save_antigravity_current_account() -> Result<String, String> {
-    tracing::info!("📥 开始保存 jetskiStateSync.agentManagerInitState");
+    tracing::info!("📥 Starting to save jetskiStateSync.agentManagerInitState");
 
     let start_time = std::time::Instant::now();
 
     let result = async {
-        // 尝试获取 Antigravity 状态数据库路径
+        // Try to get Antigravity state database path
         let app_data = match crate::platform::get_antigravity_db_path() {
             Some(path) => path,
             None => {
-                // 如果主路径不存在，尝试其他可能的位置
+                // If main path doesn't exist, try other possible locations
                 let possible_paths = crate::platform::get_all_antigravity_db_paths();
                 if possible_paths.is_empty() {
-                    return Err("未找到Antigravity安装位置".to_string());
+                    return Err("Antigravity installation path not found".to_string());
                 }
                 possible_paths[0].clone()
             }
@@ -206,16 +206,16 @@ pub async fn save_antigravity_current_account() -> Result<String, String> {
 
         if !app_data.exists() {
             return Err(format!(
-                "Antigravity 状态数据库文件不存在: {}",
+                "Antigravity status database file not found: {}",
                 app_data.display()
             ));
         }
 
-        // 连接到 SQLite 数据库并获取认证信息
+        // Connect to SQLite database and get authentication info
         let conn = Connection::open(&app_data)
-            .map_err(|e| format!("连接数据库失败 ({}): {}", app_data.display(), e))?;
+            .map_err(|e| format!("Failed to connect to database ({}): {}", app_data.display(), e))?;
 
-        // jetski 状态（必需）
+        // jetski state (required)
         let jetski_state: String = conn
             .query_row(
                 "SELECT value FROM ItemTable WHERE key = 'jetskiStateSync.agentManagerInitState'",
@@ -223,15 +223,15 @@ pub async fn save_antigravity_current_account() -> Result<String, String> {
                 |row| row.get(0),
             )
             .optional()
-            .map_err(|e| format!("查询 jetskiStateSync.agentManagerInitState 失败: {}", e))?
-            .ok_or_else(|| "未找到 jetskiStateSync.agentManagerInitState".to_string())?;
+            .map_err(|e| format!("Failed to query jetskiStateSync.agentManagerInitState: {}", e))?
+            .ok_or_else(|| "jetskiStateSync.agentManagerInitState not found".to_string())?;
 
-        // 从 jetski proto 解码邮箱（仅用于文件名）
+        // Decode email from jetski proto (only for filename)
         let bytes = base64::engine::general_purpose::STANDARD
             .decode(jetski_state.trim())
-            .map_err(|e| format!("jetskiStateSync Base64 解码失败: {}", e))?;
+            .map_err(|e| format!("Failed to decode jetskiStateSync Base64: {}", e))?;
         let msg = crate::proto::SessionResponse::decode(bytes.as_slice())
-            .map_err(|e| format!("jetskiStateSync Protobuf 解码失败: {}", e))?;
+            .map_err(|e| format!("jetskiStateSync Protobuf decode failed: {}", e))?;
 
         let email = msg
             .context
@@ -243,12 +243,12 @@ pub async fn save_antigravity_current_account() -> Result<String, String> {
                     Some(c.email.as_str())
                 }
             })
-            .ok_or_else(|| "jetskiStateSync 中未找到邮箱字段，无法确定备份文件名".to_string())?;
+            .ok_or_else(|| "jetskiStateSync: email field not found".to_string())?;
 
-        // 直接保存原始字符串，不解码，文件名与原逻辑保持：{email}.json
+        // Save the original string directly without decoding, filename follows original logic: {email}.json
         let accounts_dir = crate::directories::get_accounts_directory();
         if let Err(e) = std::fs::create_dir_all(&accounts_dir) {
-            return Err(format!("创建账户目录失败: {}", e));
+            return Err(format!("Failed to create accounts directory: {}", e));
         }
 
         let account_file = accounts_dir.join(format!("{email}.json"));
@@ -259,13 +259,13 @@ pub async fn save_antigravity_current_account() -> Result<String, String> {
             &account_file,
             serde_json::to_string_pretty(&content).unwrap(),
         )
-        .map_err(|e| format!("写入 jetski 状态失败: {}", e))?;
+        .map_err(|e| format!("Failed to write jetskiStateSync: {}", e))?;
 
         let message = format!(
-            "已保存 jetskiStateSync.agentManagerInitState 到 {}",
+            "Saved jetskiStateSync.agentManagerInitState to {}",
             account_file.display()
         );
-        tracing::info!(file = %account_file.display(), "✅ 保存 jetski 状态完成");
+        tracing::info!(file = %account_file.display(), "✅ Jetski state saved successfully");
         Ok(message)
     }
     .await;
@@ -277,7 +277,7 @@ pub async fn save_antigravity_current_account() -> Result<String, String> {
             tracing::info!(
                 duration_ms = duration.as_millis(),
                 result_message = %message,
-                "账户保存操作完成"
+                "Account save operation completed"
             );
             Ok(message)
         }
@@ -285,78 +285,78 @@ pub async fn save_antigravity_current_account() -> Result<String, String> {
             tracing::error!(
                 error = %e,
                 duration_ms = duration.as_millis(),
-                "账户保存操作失败"
+                "Account save operation failed"
             );
             Err(e)
         }
     }
 }
 
-/// 清除所有 Antigravity 数据
+/// Clear all Antigravity data
 #[tauri::command]
 pub async fn clear_all_antigravity_data() -> Result<String, String> {
     crate::antigravity::cleanup::clear_all_antigravity_data().await
 }
 
-/// 恢复 Antigravity 账户
+/// Restore Antigravity account
 #[tauri::command]
 pub async fn restore_antigravity_account(account_name: String) -> Result<String, String> {
-    tracing::debug!(target: "account::restore", account_name = %account_name, "调用 restore_antigravity_account");
+    tracing::debug!(target: "account::restore", account_name = %account_name, "Calling restore_antigravity_account");
 
-    // 1. 构建备份文件路径
+    // 1. Build backup file path
     let accounts_dir = crate::directories::get_accounts_directory();
     let account_file = accounts_dir.join(format!("{account_name}.json"));
 
-    // 2. 调用统一的恢复函数
+    // 2. Call unified restore function
     crate::antigravity::restore::save_antigravity_account_to_file(account_file).await
 }
 
-/// 切换到 Antigravity 账户（调用 restore_antigravity_account）
+/// Switch to Antigravity account (calls restore_antigravity_account)
 #[tauri::command]
 pub async fn switch_to_antigravity_account(account_name: String) -> Result<String, String> {
     crate::log_async_command!("switch_to_antigravity_account", async {
-        // 1. 关闭 Antigravity 进程 (如果存在)
+        // 1. Close Antigravity process (if exists)
         let kill_result = match crate::platform::kill_antigravity_processes() {
             Ok(result) => {
-                if result.contains("not found") || result.contains("未找到") {
-                    tracing::debug!(target: "account::switch::step1", "Antigravity 进程未运行，跳过关闭步骤");
-                    "Antigravity 进程未运行".to_string()
+                if result.contains("not found") {
+                    tracing::debug!(target: "account::switch::step1", "Antigravity process not running, skipping kill step");
+                    "Antigravity process not running".to_string()
                 } else {
-                    tracing::debug!(target: "account::switch::step1", result = %result, "进程关闭完成");
+                    tracing::debug!(target: "account::switch::step1", result = %result, "Antigravity process killed successfully");
                     result
                 }
             }
             Err(e) => {
-                if e.contains("not found") || e.contains("未找到") {
-                    tracing::debug!(target: "account::switch::step1", "Antigravity 进程未运行，跳过关闭步骤");
-                    "Antigravity 进程未运行".to_string()
+                if e.contains("not found") {
+                    tracing::debug!(target: "account::switch::step1", "Antigravity process not running, skipping kill step");
+                    "Antigravity process not running".to_string()
                 } else {
-                    tracing::error!(target: "account::switch::step1", error = %e, "关闭进程时发生错误");
-                    return Err(format!("关闭进程时发生错误: {}", e));
+                    tracing::error!(target: "account::switch::step1", error = %e, "Failed to kill Antigravity process");
+                    return Err(format!("Failed to kill Antigravity process: {}", e));
                 }
             }
         };
 
-        // 等待一秒确保进程完全关闭
+        // Wait one second to ensure process is fully closed
         tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
 
-        // 2. 恢复指定账户到 Antigravity 数据库
+        // 2. Restore specified account to Antigravity database
         let restore_result = restore_antigravity_account(account_name.clone()).await?;
-        tracing::debug!(target: "account::switch::step2", result = %restore_result, "账户数据恢复完成");
+        tracing::debug!(target: "account::switch::step2", result = %restore_result, "Account data restored successfully");
 
-        // 等待一秒确保数据库操作完成
+        // Wait one second to ensure database operation is complete
         tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
 
-        // 3. 重新启动 Antigravity 进程
+        // 3. Restart Antigravity process
         let start_result = crate::antigravity::starter::start_antigravity();
         let start_message = match start_result {
             Ok(result) => {
-                tracing::debug!(target: "account::switch::step3", result = %result, "Antigravity 启动成功");
+                tracing::debug!(target: "account::switch::step3", result = %result, "Antigravity started successfully");
                 result
             }
             Err(e) => {
-                tracing::warn!(target: "account::switch::step3", error = %e, "Antigravity 启动失败");
-                format!("启动失败: {}", e)
+                tracing::warn!(target: "account::switch::step3", error = %e, "Antigravity failed to start");
+                format!("Antigravity failed to start: {}", e)
             }
         };
 

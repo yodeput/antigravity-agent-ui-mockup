@@ -1,19 +1,19 @@
 use crate::directories;
-/// 配置管理器
-/// 统一管理所有配置目录和文件路径
+/// Configuration manager
+/// Unified management of all configuration directories and file paths
 use std::path::PathBuf;
 
-/// 配置管理器结构
+/// Configuration manager structure
 pub struct ConfigManager;
 
 impl ConfigManager {
-    /// 创建新的配置管理器
+    /// Create a new configuration manager
     pub fn new() -> Result<Self, String> {
-        // 目录创建已经在 directories 模块中处理
+        // Directory creation is handled in the directories module
         Ok(Self)
     }
 
-    /// 获取窗口状态文件路径
+    /// Get the window state file path
     pub fn window_state_file(&self) -> PathBuf {
         directories::get_window_state_file()
     }

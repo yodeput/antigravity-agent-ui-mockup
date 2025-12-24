@@ -1,9 +1,9 @@
-//! 应用设置命令
-//! 负责应用程序配置的管理和存储，使用 State 模式
+//! Application settings commands
+//! Responsible for managing and storing application configuration, using State pattern
 
 use tauri::{AppHandle, Manager};
 
-/// 保存系统托盘状态
+/// Save system tray state
 #[tauri::command]
 pub async fn save_system_tray_state(app: AppHandle, enabled: bool) -> Result<bool, String> {
     crate::log_async_command!("save_system_tray_state", async {
@@ -21,7 +21,7 @@ pub async fn save_system_tray_state(app: AppHandle, enabled: bool) -> Result<boo
     })
 }
 
-/// 保存静默启动状态
+/// Save silent start state
 #[tauri::command]
 pub async fn save_silent_start_state(app: AppHandle, enabled: bool) -> Result<bool, String> {
     crate::log_async_command!("save_silent_start_state", async {
@@ -36,7 +36,7 @@ pub async fn save_silent_start_state(app: AppHandle, enabled: bool) -> Result<bo
     })
 }
 
-/// 保存隐私模式状态
+/// Save privacy mode state
 #[tauri::command]
 pub async fn save_private_mode_state(app: AppHandle, enabled: bool) -> Result<bool, String> {
     crate::log_async_command!("save_private_mode_state", async {
@@ -51,7 +51,7 @@ pub async fn save_private_mode_state(app: AppHandle, enabled: bool) -> Result<bo
     })
 }
 
-/// 保存 Debug Mode 状态
+/// Save Debug Mode state
 #[tauri::command]
 pub async fn save_debug_mode_state(app: AppHandle, enabled: bool) -> Result<bool, String> {
     crate::log_async_command!("save_debug_mode_state", async {
@@ -66,7 +66,7 @@ pub async fn save_debug_mode_state(app: AppHandle, enabled: bool) -> Result<bool
     })
 }
 
-/// 获取所有应用设置
+/// Get all application settings
 #[tauri::command]
 pub async fn get_all_settings(app: AppHandle) -> Result<serde_json::Value, String> {
     crate::log_async_command!("get_all_settings", async {
