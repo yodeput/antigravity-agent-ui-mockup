@@ -88,6 +88,13 @@ const tierVisualStyles: Record<UserTier, TierVisualStyles> = {
   },
 };
 
+const unknownStyle: TierVisualStyles = {
+  background: 'repeating-linear-gradient(45deg, #f8fafc, #f8fafc 10px, #f1f5f9 10px, #f1f5f9 20px)',
+  borderColor: '#cbd5e1',
+  boxShadow: 'none',
+  hoverBoxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
+};
+
 const tierBadgeMap: Record<UserTier, React.ReactNode> = {
   "free-tier": (
     <span className="px-1.5 py-0.5 bg-slate-100 text-slate-500 text-[10px] font-bold rounded-md leading-none border border-slate-200 shadow-sm">
@@ -142,13 +149,11 @@ const childVariants: Variants = {
 
 export function AccountSessionListCard(props: UserSessionCardProps) {
   let { tier } = props;
-  const unknownTier = !["free-tier", "g1-pro-tier", "g1-ultra-tier"].includes(
-    tier
-  );
-  if (unknownTier) {
-    tier = "free-tier";
-  }
-  const { boxShadow, hoverBoxShadow, ...otherStyles } = tierVisualStyles[tier];
+  const unknownTier = !["free-tier", "g1-pro-tier", "g1-ultra-tier"].includes(tier);
+
+  const currentStyles = unknownTier ? unknownStyle : tierVisualStyles[tier];
+
+  const { boxShadow, hoverBoxShadow, ...otherStyles } = currentStyles;
 
   // --- 1. Spotlight Logic ---
   const mouseX = useMotionValue(0);
@@ -262,7 +267,9 @@ export function AccountSessionListCard(props: UserSessionCardProps) {
                   {props.nickName}
                 </h2>
               </Tooltip>
-              <div className="mt-0.5 shrink-0">{tierBadgeMap[tier]}</div>
+              <div className="mt-0.5 shrink-0">
+                {tierBadgeMap[tier] || <span className="px-1.5 py-0.5 bg-gray-100 text-gray-500 text-[10px] font-bold rounded-md leading-none border border-gray-200 shadow-sm">Unknown</span>}
+              </div>
             </div>
             <Tooltip
               title={props.email}
@@ -358,31 +365,26 @@ export function AccountSessionListCard(props: UserSessionCardProps) {
       </div>
       {unknownTier && (
         <div className="absolute bottom-3 right-3 z-50">
-          <Tooltip
-            title={
-              <div className="flex flex-col gap-0.5">
-                <span>
-                  If you see this symbol, it means the developer's built-in data
-                  doesn't cover the current account tier{" "}
-                  <span className="font-mono bg-white/10 px-1 rounded">
-                    {props.tier}
-                  </span>
-                </span>
-                <span>
-                  This is not your fault. To help fix this, please take a
-                  screenshot and{" "}
-                  <a
-                    href="https://github.com/MonchiLin/antigravity-agent/issues"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-blue-300 hover:text-blue-200 underline decoration-auto underline-offset-2"
-                  >
-                    report it to the developer
-                  </a>
-                </span>
-              </div>
-            }
-          >
+          <Tooltip title={
+            <div className="flex flex-col gap-0.5">
+              <span>
+                If you see this symbol, it means the developer's built-in data
+                doesn't cover the current account tier <span className="font-mono bg-white/10 px-1 rounded">[{props.tier}]</span>
+              </span>
+              <span>
+                This is not your fault. To help fix this, please take a
+                screenshot and{" "}
+                <a
+                  href="https://github.com/MonchiLin/antigravity-agent/issues"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-blue-300 hover:text-blue-200 underline decoration-auto underline-offset-2"
+                >
+                  report it to the developer
+                </a>
+              </span>
+            </div>
+          }>
             <TriangleAlert className="w-4 h-4 text-amber-500/80 hover:text-amber-600 transition-colors cursor-help" />
           </Tooltip>
         </div>

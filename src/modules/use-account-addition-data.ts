@@ -58,11 +58,6 @@ export const useAccountAdditionData = create<State & Actions>((setState, getStat
       antigravityAccount.auth.access_token = refreshTokenResponse.access_token;
     }
 
-    // Fuzzy match tier definition since the exact format is unknown
-    if (antigravityAccount.context.plan.slug.includes("ultra")) {
-      // antigravityAccount.context.plan.slug = "g1-ultra-tier";
-    }
-
     codeAssistResponse = await CloudCodeAPI.loadCodeAssist(antigravityAccount.auth.access_token);
 
     const modelsResponse = await CloudCodeAPI.fetchAvailableModels(antigravityAccount.auth.access_token, codeAssistResponse.cloudaicompanionProject);

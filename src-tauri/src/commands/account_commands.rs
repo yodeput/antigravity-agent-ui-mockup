@@ -340,23 +340,27 @@ pub async fn switch_to_antigravity_account(account_name: String) -> Result<Strin
         // Wait one second to ensure process is fully closed
         tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
 
-        // 2. Restore specified account to Antigravity database
+        // 2. 清除原来的数据库
+        clear_all_antigravity_data().await?;
+        tracing::warn!(target: "account::switch::step2", "Antigravity 数据库清除完成");
+
+        // 3. 恢复指定账户到 Antigravity 数据库
         let restore_result = restore_antigravity_account(account_name.clone()).await?;
-        tracing::debug!(target: "account::switch::step2", result = %restore_result, "Account data restored successfully");
+        tracing::debug!(target: "account::switch::step3", result = %restore_result, "账户数据恢复完成");
 
         // Wait one second to ensure database operation is complete
         tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
 
-        // 3. Restart Antigravity process
+        // 4. 重新启动 Antigravity 进程
         let start_result = crate::antigravity::starter::start_antigravity();
         let start_message = match start_result {
             Ok(result) => {
-                tracing::debug!(target: "account::switch::step3", result = %result, "Antigravity started successfully");
+                tracing::debug!(target: "account::switch::step4", result = %result, "Antigravity 启动成功");
                 result
             }
             Err(e) => {
-                tracing::warn!(target: "account::switch::step3", error = %e, "Antigravity failed to start");
-                format!("Antigravity failed to start: {}", e)
+                tracing::warn!(target: "account::switch::step4", error = %e, "Antigravity 启动失败");
+                format!("启动失败: {}", e)
             }
         };
 
