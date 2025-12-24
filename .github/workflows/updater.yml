@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Release tag (e.g., v1.0.0)'
+        description: "Release tag (e.g., v1.0.0)"
         required: true
         type: string
   repository_dispatch:
@@ -21,10 +21,10 @@ jobs:
     runs-on: ubuntu-latest
     # Auto-trigger: only for non-prerelease releases
     # Manual trigger: always execute
-    if: github.event_name == 'workflow_dispatch' || 
-        github.event_name == 'repository_dispatch' ||
-        (github.event_name == 'release' && github.event.release.prerelease == false)
-    
+    if: github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'repository_dispatch' ||
+      (github.event_name == 'release' && github.event.release.prerelease == false)
+
     outputs:
       json-url: ${{ steps.upload.outputs.json-url }}
 
@@ -44,12 +44,12 @@ jobs:
           else
             TAG="${{ github.event.release.tag_name }}"
           fi
-          
+
           if [ -z "$TAG" ]; then
             echo "❌ Error: No tag specified"
             exit 1
           fi
-          
+
           echo "tag=$TAG" >> $GITHUB_OUTPUT
           echo "version=${TAG#v}" >> $GITHUB_OUTPUT
           echo "📍 Processing tag: $TAG"
@@ -61,15 +61,15 @@ jobs:
           TAG: ${{ steps.tag.outputs.tag }}
         run: |
           echo "📦 Fetching release information for $TAG..."
-          
+
           # Get release details with assets
           RELEASE_DATA=$(gh release view "$TAG" --repo "$REPO" --json body,publishedAt,assets --jq '.')
           echo "$RELEASE_DATA" > release.json
-          
+
           # Extract release body and published date
           BODY=$(echo "$RELEASE_DATA" | jq -r '.body // ""')
           PUB_DATE=$(echo "$RELEASE_DATA" | jq -r '.publishedAt // ""')
-          
+
           if [ -z "$PUB_DATE" ]; then
             PUB_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
           fi
@@ -83,9 +83,9 @@ jobs:
           ')
 
           if [ -z "$UPDATER_NOTES" ]; then
-            UPDATER_NOTES="详见：https://github.com/$REPO/releases/tag/$TAG"
+            UPDATER_NOTES="See: https://github.com/$REPO/releases/tag/$TAG"
           fi
-          
+
           {
             echo "release_body<<EOF"
             printf '%s\n' "$BODY"
@@ -95,7 +95,7 @@ jobs:
             echo "EOF"
             echo "pub_date=$PUB_DATE"
           } >> "$GITHUB_ENV"
-          
+
           # Show assets count
           ASSET_COUNT=$(echo "$RELEASE_DATA" | jq '.assets | length')
           echo "Found $ASSET_COUNT assets in release"
@@ -107,17 +107,17 @@ jobs:
           TAG: ${{ steps.tag.outputs.tag }}
         run: |
           echo "⬇️ Downloading release assets..."
-          
+
           # Create assets directory
           mkdir -p assets
           cd assets
-          
+
           # Download all assets
           gh release download "$TAG" --repo "$REPO" --clobber
-          
+
           echo ""
           echo "=== 📋 Analyzing Downloaded Files ==="
-          
+
           # Function to detect and categorize files
           detect_file() {
             local pattern="$1"
@@ -144,17 +144,17 @@ jobs:
             fi
             return 1
           }
-          
+
           # Windows updater bundle (NSIS installer)
           detect_file "*setup*.exe" "windows" "x86_64" "nsis" || detect_file "*.msi" "windows" "x86_64" "msi"
-          
+
           # macOS updater bundle (app tarball)
           detect_file "*aarch64*.app.tar.gz" "darwin" "aarch64" "app"
           detect_file "*x86_64*.app.tar.gz" "darwin" "x86_64" "app"
-          
+
           # Linux updater bundle (prefer tarball if present)
           detect_file "*amd64*.AppImage.tar.gz" "linux" "x86_64" "appimage" || detect_file "*amd64*.AppImage" "linux" "x86_64" "appimage"
-          
+
           echo ""
           echo "=== Detection Summary ==="
           detected_count=$(env | grep -- '_file=' | wc -l)
@@ -167,12 +167,12 @@ jobs:
           VERSION: ${{ steps.tag.outputs.version }}
         run: |
           cd assets
-          
+
           BASE_URL="https://github.com/$REPO/releases/download/$TAG"
-          
+
           # Initialize platforms object
           PLATFORMS='{}'
-          
+
           # Helper function to add platform
           add_platform() {
             local platform_id="$1"
@@ -201,13 +201,13 @@ jobs:
               echo "✅ Added $platform_id platform"
             fi
           }
-          
+
           # Add platforms
           add_platform "windows-x86_64" "windows_x86_64_file" "windows_x86_64_sig"
           add_platform "darwin-aarch64" "darwin_aarch64_file" "darwin_aarch64_sig"
           add_platform "darwin-x86_64" "darwin_x86_64_file" "darwin_x86_64_sig"
           add_platform "linux-x86_64" "linux_x86_64_file" "linux_x86_64_sig"
-          
+
           # Generate final JSON
           jq -n \
             --arg version "$TAG" \
@@ -220,18 +220,18 @@ jobs:
               pub_date: $pub_date,
               platforms: $platforms
             }' > latest.json
-          
+
           echo ""
           echo "=== 📄 Generated latest.json ==="
           cat latest.json
           echo ""
-          
+
           # Validate JSON
           if ! jq empty latest.json; then
             echo "❌ Invalid JSON generated!"
             exit 1
           fi
-          
+
           # Show platform count
           platform_count=$(jq '.platforms | keys | length' latest.json)
           echo "✅ JSON valid with $platform_count platforms configured"
@@ -244,14 +244,14 @@ jobs:
           REPO: ${{ github.repository }}
         run: |
           cd assets
-          
+
           echo "📤 Uploading latest.json to release $TAG..."
           gh release upload "$TAG" latest.json --clobber --repo "$REPO"
-          
+
           # Generate download URL
           JSON_URL="https://github.com/$REPO/releases/download/$TAG/latest.json"
           echo "json-url=$JSON_URL" >> $GITHUB_OUTPUT
-          
+
           echo "✅ Uploaded successfully!"
           echo "📥 JSON URL: $JSON_URL"
 
@@ -268,7 +268,7 @@ jobs:
             echo "| JSON URL | [latest.json](${{ steps.upload.outputs.json-url }}) |" >> $GITHUB_STEP_SUMMARY
           fi
           echo "" >> $GITHUB_STEP_SUMMARY
-          
+
           if [ "${{ job.status }}" = "success" ]; then
             echo "### ✅ Generated Configuration" >> $GITHUB_STEP_SUMMARY
             echo '```json' >> $GITHUB_STEP_SUMMARY

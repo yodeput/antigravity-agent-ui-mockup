@@ -3,7 +3,7 @@ name: CI
 on:
   push:
     branches: [master, dev]
-    tags: ['v*']
+    tags: ["v*"]
   pull_request:
     branches: [master, dev]
 
@@ -24,8 +24,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 'lts/*'
-          cache: 'npm'
+          node-version: "lts/*"
+          cache: "npm"
 
       - name: Install dependencies
         run: npm ci
@@ -58,19 +58,19 @@ jobs:
       - name: Rust cache
         uses: swatinem/rust-cache@v2
         with:
-          workspaces: './src-tauri -> target'
+          workspaces: "./src-tauri -> target"
 
       - name: Run backend tests
         run: cd src-tauri && cargo test
 
       - name: Check backend formatting
         run: cd src-tauri && cargo fmt --all -- --check
-        # TODO: 暂时允许格式检查失败，待后续统一处理代码格式
+        # TODO: Temporarily allow format check failures, to be unified later
         continue-on-error: true
 
       - name: Run backend clippy
         run: cd src-tauri && cargo clippy --all-targets --all-features -- -D warnings
-        # TODO: 暂时允许 clippy 警告，待后续逐步修复
+        # TODO: Temporarily allow clippy warnings, to be fixed gradually
         continue-on-error: true
 
   build-test:
@@ -79,7 +79,7 @@ jobs:
       fail-fast: false
       matrix:
         platform:
-          - macos-latest  # 与 autobuild.yml 和 release.yml 保持一致
+          - macos-latest # Consistent with autobuild.yml and release.yml
           - ubuntu-latest
           - windows-latest
 
@@ -106,13 +106,13 @@ jobs:
       - name: Rust cache
         uses: swatinem/rust-cache@v2
         with:
-          workspaces: './src-tauri -> target'
+          workspaces: "./src-tauri -> target"
 
       - name: Sync node version and setup cache
         uses: actions/setup-node@v4
         with:
-          node-version: 'lts/*'
-          cache: 'npm'
+          node-version: "lts/*"
+          cache: "npm"
 
       - name: Install frontend dependencies
         run: npm ci
@@ -152,7 +152,7 @@ jobs:
       - name: Rust cache
         uses: swatinem/rust-cache@v2
         with:
-          workspaces: './src-tauri -> target'
+          workspaces: "./src-tauri -> target"
 
       - name: Install cargo-audit
         run: cargo install cargo-audit --locked
@@ -163,8 +163,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 'lts/*'
-          cache: 'npm'
+          node-version: "lts/*"
+          cache: "npm"
 
       - name: Install dependencies
         run: npm ci

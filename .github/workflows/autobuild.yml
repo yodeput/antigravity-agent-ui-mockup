@@ -2,13 +2,13 @@ name: AutoBuild
 
 on:
   push:
-    branches: [dev]         # dev 分支 push 时触发
+    branches: [dev] # Trigger on dev branch push
   schedule:
-    - cron: '0 0 * * *'    # 每天 00:00 UTC 构建一次 Nightly
-  workflow_dispatch:        # 手动触发
+    - cron: "0 0 * * *" # Build Nightly once daily at 00:00 UTC
+  workflow_dispatch: # Manual trigger
 
 permissions:
-  contents: write  # 允许创建/更新 release、上传文件
+  contents: write # Allow creating/updating releases, uploading files
 
 concurrency:
   group: autobuild-${{ github.ref }}
@@ -18,7 +18,7 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  # 第一步：删除旧 release，创建新的 release
+  # Step 1: Delete old release, create new release
   prepare-release:
     runs-on: ubuntu-latest
     steps:
@@ -31,9 +31,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # 尝试删除旧的 release
+          # Try to delete old release
           gh release delete autobuild --yes --repo "${{ github.repository }}" 2>/dev/null || echo "No existing release to delete"
-          # 尝试删除旧的 tag
+          # Try to delete old tag
           gh api -X DELETE "repos/${{ github.repository }}/git/refs/tags/autobuild" 2>/dev/null || echo "No existing tag to delete"
           echo "✅ Cleaned up old release and tag"
 
@@ -41,7 +41,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: autobuild
-          name: 'Antigravity Agent Nightly (${{ github.event.head_commit.timestamp }})'
+          name: "Antigravity Agent Nightly (${{ github.event.head_commit.timestamp }})"
           body: |
             Nightly build from dev branch.
 
@@ -49,30 +49,30 @@ jobs:
             📦 Commit: ${{ github.sha }}
 
             ---
-            ## 📥 下载安装
+            ## 📥 Download
 
-            ⚠️ **注意**：这是自动构建的测试版本，可能不稳定。建议普通用户使用 [正式发布版本](https://github.com/MonchiLin/antigravity-agent/releases/latest)。
+            ⚠️ **Note**: This is an automated test build and may be unstable. Regular users should use the [stable release](https://github.com/MonchiLin/antigravity-agent/releases/latest).
 
             ### Windows
-            - **安装版**（推荐）: [Antigravity.Agent_x64-setup.exe](${{ github.server_url }}/${{ github.repository }}/releases/download/autobuild/Antigravity.Agent_x64-setup.exe) - 支持自动更新
-            - **便携版**: [Antigravity-Agent-x86_64-Portable.zip](${{ github.server_url }}/${{ github.repository }}/releases/download/autobuild/Antigravity-Agent-x86_64-Portable.zip) - 解压即用，无需安装
-            
+            - **Installer** (Recommended): [Antigravity.Agent_x64-setup.exe](${{ github.server_url }}/${{ github.repository }}/releases/download/autobuild/Antigravity.Agent_x64-setup.exe) - Supports auto-update
+            - **Portable**: [Antigravity-Agent-x86_64-Portable.zip](${{ github.server_url }}/${{ github.repository }}/releases/download/autobuild/Antigravity-Agent-x86_64-Portable.zip) - Extract and run, no installation required
+
             ### macOS
             - **Apple Silicon (M1/M2)**: [Antigravity.Agent_aarch64.dmg](${{ github.server_url }}/${{ github.repository }}/releases/download/autobuild/Antigravity.Agent_aarch64.dmg)
             - **Intel Mac**: [Antigravity.Agent_x86_64.dmg](${{ github.server_url }}/${{ github.repository }}/releases/download/autobuild/Antigravity.Agent_x86_64.dmg)
-            
+
             ### Linux
-            - **AppImage**: [antigravity-agent_amd64.AppImage](${{ github.server_url }}/${{ github.repository }}/releases/download/autobuild/antigravity-agent_amd64.AppImage) - 通用格式，适用于所有发行版
+            - **AppImage**: [antigravity-agent_amd64.AppImage](${{ github.server_url }}/${{ github.repository }}/releases/download/autobuild/antigravity-agent_amd64.AppImage) - Universal format, works on all distros
             - **Debian/Ubuntu**: [antigravity-agent_amd64.deb](${{ github.server_url }}/${{ github.repository }}/releases/download/autobuild/antigravity-agent_amd64.deb)
             ---
 
-            🐛 如果发现问题或者需求请求，请[提交 Issue](https://github.com/MonchiLin/antigravity-agent/issues/new)
+            🐛 If you find issues or have feature requests, please [submit an Issue](https://github.com/MonchiLin/antigravity-agent/issues/new)
           prerelease: true
           draft: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  # 第二步：并行构建
+  # Step 2: Parallel build
   build:
     needs: prepare-release
     uses: ./.github/workflows/tauri-build.yml
