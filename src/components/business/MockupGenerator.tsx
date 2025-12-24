@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { Image, Sparkles, Loader2, Download } from 'lucide-react';
 import { BaseButton } from '@/components/base-ui/BaseButton';
 import { cn } from '@/lib/utils.ts';
+import { Select as AntSelect } from 'antd';
 import { CloudCodeAPI } from '@/services/cloudcode-api';
 import { CloudCodeAPITypes } from '@/services/cloudcode-api.types';
 import { useCurrentAntigravityAccount } from '@/modules/use-antigravity-account';
 import { logger } from '@/lib/logger';
+import { HistoryPanel, HistoryDialog, HistoryItemData } from './mockup-generator';
 
 // Model option interface
 interface ModelOption {
@@ -43,6 +45,7 @@ interface MockupGeneratorProps {
 }
 
 interface GeneratedResult {
+  id: string;
   imageUrl: string;
   prompt: string;
   model: string;
@@ -68,6 +71,40 @@ const MockupGenerator: React.FC<MockupGeneratorProps> = ({ className }) => {
   const [result, setResult] = useState<GeneratedResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // History state
+  const [history, setHistory] = useState<HistoryItemData[]>([]);
+  const [showHistoryDialog, setShowHistoryDialog] = useState(false);
+
+  const HISTORY_STORAGE_KEY = 'ui-design-generator-history';
+  const MAX_HISTORY_ITEMS = 20;
+
+  // Load history from localStorage on mount
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(HISTORY_STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        // Convert timestamp strings back to Date objects
+        const items = parsed.map((item: any) => ({
+          ...item,
+          timestamp: new Date(item.timestamp)
+        }));
+        setHistory(items);
+      }
+    } catch (err) {
+      logger.error('Failed to load history from localStorage', { error: err });
+    }
+  }, []);
+
+  // Save history to localStorage
+  const saveHistory = (items: HistoryItemData[]) => {
+    try {
+      localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(items));
+    } catch (err) {
+      logger.error('Failed to save history to localStorage', { error: err });
+    }
+  };
+
   // Fetch available models on mount
   useEffect(() => {
     const fetchModels = async () => {
@@ -91,9 +128,9 @@ const MockupGenerator: React.FC<MockupGeneratorProps> = ({ className }) => {
           projectId
         );
 
-        // Extract image generation models from the response
-        const imageModelIds = response.imageGenerationModelIds || [];
-        const modelOptions: ModelOption[] = imageModelIds.map((modelId: string) => {
+        // Extract all models from the response (including non-image models)
+        const allModelIds = Object.keys(response.models || {});
+        const modelOptions: ModelOption[] = allModelIds.map((modelId: string) => {
           // Try to get display name from models object
           const modelData = response.models[modelId as keyof CloudCodeAPITypes.Models];
           const displayName = modelData && 'displayName' in modelData 
@@ -108,12 +145,14 @@ const MockupGenerator: React.FC<MockupGeneratorProps> = ({ className }) => {
 
         setModels(modelOptions);
         
-        // Set default selected model
+        // Set default selected model (prefer image generation model if available)
         if (modelOptions.length > 0 && !selectedModel) {
-          setSelectedModel(modelOptions[0].id);
+          const imageModelIds = response.imageGenerationModelIds || [];
+          const defaultModel = imageModelIds[0] || modelOptions[0].id;
+          setSelectedModel(defaultModel);
         }
 
-        logger.info('Fetched available image models', {
+        logger.info('Fetched available models', {
           module: 'MockupGenerator',
           modelCount: modelOptions.length,
           models: modelOptions.map(m => m.id)
@@ -211,14 +250,22 @@ Generate a high-fidelity UI design based on the above specifications. The design
       }
       
       if (imageUrl) {
-        setResult({
+        const newResult: GeneratedResult = {
+          id: crypto.randomUUID(),
           imageUrl,
           prompt: prompt,
           model: selectedModel,
           aspectRatio: selectedAspectRatio,
           designLanguage: selectedDesignLanguage,
           timestamp: new Date(),
-        });
+        };
+        
+        setResult(newResult);
+
+        // Add to history (prepend and limit to max items)
+        const newHistory = [newResult, ...history].slice(0, MAX_HISTORY_ITEMS);
+        setHistory(newHistory);
+        saveHistory(newHistory);
 
         logger.info('Image generated successfully', {
           module: 'MockupGenerator',
@@ -261,14 +308,40 @@ Generate a high-fidelity UI design based on the above specifications. The design
     document.body.removeChild(link);
   };
 
+  // History handlers
+  const handleSelectHistoryItem = (item: HistoryItemData) => {
+    // Load all details back into the editor
+    setResult(item);
+    setPrompt(item.prompt);
+    setSelectedModel(item.model);
+    setSelectedAspectRatio(item.aspectRatio as AspectRatioId);
+    setSelectedDesignLanguage(item.designLanguage as DesignLanguageId);
+  };
+
+  const handleDeleteHistoryItem = (id: string) => {
+    const newHistory = history.filter(item => item.id !== id);
+    setHistory(newHistory);
+    saveHistory(newHistory);
+    // Clear result if the deleted item is currently displayed
+    if (result?.id === id) {
+      setResult(null);
+    }
+  };
+
+  const handleClearHistory = () => {
+    setHistory([]);
+    saveHistory([]);
+    setResult(null);
+  };
+
   return (
     <div className={cn('flex flex-row h-full', className)}>
       {/* Left Section - Controls */}
-      <div className="w-80 flex-shrink-0 border-r border-gray-200 dark:border-gray-800 p-6 space-y-6 overflow-y-auto">
+      <div className="w-[35%] flex-shrink-0 border-r border-gray-200 dark:border-gray-800 p-6 space-y-6 overflow-y-auto">
         <div className="flex items-center gap-2 mb-6">
           <Sparkles className="h-5 w-5 text-blue-500" />
           <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-            UI/UX Mockup Generator
+            UI Design Generator
           </h2>
         </div>
 
@@ -286,22 +359,17 @@ Generate a high-fidelity UI design based on the above specifications. The design
               {modelsError}
             </div>
           ) : (
-            <select
-              value={selectedModel}
-              onChange={(e) => setSelectedModel(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+            <AntSelect
+              value={selectedModel || undefined}
+              onChange={(v) => setSelectedModel(v)}
+              placeholder="Select a model"
               disabled={models.length === 0}
-            >
-              {models.length === 0 ? (
-                <option value="">No models available</option>
-              ) : (
-                models.map((model) => (
-                  <option key={model.id} value={model.id}>
-                    {model.name}
-                  </option>
-                ))
-              )}
-            </select>
+              options={models.map((model) => ({
+                value: model.id,
+                label: model.name,
+              }))}
+              className="w-full [&_.ant-select-selector]:!rounded-lg"
+            />
           )}
         </div>
 
@@ -383,6 +451,18 @@ Generate a high-fidelity UI design based on the above specifications. The design
         >
           Generate Mockup
         </BaseButton>
+
+        {/* Divider */}
+        <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+          {/* History Panel */}
+          <HistoryPanel
+            history={history}
+            onSelect={handleSelectHistoryItem}
+            onDelete={handleDeleteHistoryItem}
+            onClearAll={handleClearHistory}
+            onSeeAll={() => setShowHistoryDialog(true)}
+          />
+        </div>
       </div>
 
       {/* Right Section - Result */}
@@ -431,6 +511,16 @@ Generate a high-fidelity UI design based on the above specifications. The design
           )}
         </div>
       </div>
+
+      {/* History Dialog */}
+      <HistoryDialog
+        open={showHistoryDialog}
+        onClose={() => setShowHistoryDialog(false)}
+        history={history}
+        onSelect={handleSelectHistoryItem}
+        onDelete={handleDeleteHistoryItem}
+        onClearAll={handleClearHistory}
+      />
     </div>
   );
 };

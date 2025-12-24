@@ -113,7 +113,7 @@ const AccountsListToolbar: React.FC<BusinessListToolbarProps> = ({
           {/* padding 修复截断 */}
           <LineShadowText className={"pr-2 pb-1"}>Agent</LineShadowText>
         </a>
-        <UpdateBadge/>
+        {/* <UpdateBadge/> */}
       </div>
 
       <div className="flex items-center gap-2 shrink-0">
