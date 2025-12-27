@@ -2,13 +2,20 @@ import React from 'react';
 import { Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+export interface ScreenDefinition {
+  title: string;
+  description: string;
+}
+
 export interface HistoryItemData {
   id: string;
   imageUrl: string;
   prompt: string;
   model: string;
-  aspectRatio: string;
+  platform: string;
+  screens?: ScreenDefinition[];
   designLanguage: string;
+  fullPrompt?: string;
   timestamp: Date;
 }
 

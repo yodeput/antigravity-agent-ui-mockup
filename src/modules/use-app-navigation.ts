@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-export type AppView = 'accounts' | 'mockup-generator';
+export type AppView = 'accounts' | 'generators';
 
 interface AppNavigationState {
   currentView: AppView;

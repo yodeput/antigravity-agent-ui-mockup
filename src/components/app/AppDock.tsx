@@ -92,8 +92,8 @@ Note: The system will automatically start Antigravity, please make sure all impo
               <Users className="size-6" />
             </AnimatedTooltip>
           </DockIcon>
-          <DockIcon onClick={() => setView('mockup-generator')}>
-            <AnimatedTooltip text={"UI/UX Mockup Generator"}>
+          <DockIcon onClick={() => setView('generators')}>
+            <AnimatedTooltip text={"Generators"}>
               <Sparkles className="size-6" />
             </AnimatedTooltip>
           </DockIcon>

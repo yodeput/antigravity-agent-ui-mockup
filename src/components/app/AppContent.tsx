@@ -11,7 +11,7 @@ import {AccountSessionList, AccountSessionListAccountItem} from "@/components/bu
 import AccountsListToolbar, {type ListToolbarValue} from "@/components/business/AccountsListToolbar.tsx";
 import {logger} from "@/lib/logger.ts";
 import {useAppNavigation} from "@/modules/use-app-navigation.ts";
-import MockupGenerator from "@/components/business/MockupGenerator.tsx";
+import GeneratorPage from "@/components/business/GeneratorPage.tsx";
 
 const tierRank: Record<UserTier, number> = {
   'g1-ultra-tier': 0,
@@ -222,9 +222,9 @@ export function AppContent() {
       }
     });
 
-  // Render Mockup Generator view
-  if (currentView === 'mockup-generator') {
-    return <MockupGenerator className="flex-1" />;
+  // Render Generators view
+  if (currentView === 'generators') {
+    return <GeneratorPage className="flex-1" />;
   }
 
   return (

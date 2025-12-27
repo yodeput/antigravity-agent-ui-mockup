@@ -1,27 +1,29 @@
 import React, { useState, useEffect } from 'react';
-import { Image, Sparkles, Loader2, Download } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { Image, Sparkles, Loader2, Download, Plus, History as HistoryIcon, Pencil, Trash2, Copy } from 'lucide-react';
 import { BaseButton } from '@/components/base-ui/BaseButton';
 import { cn } from '@/lib/utils.ts';
-import { Select as AntSelect } from 'antd';
 import { CloudCodeAPI } from '@/services/cloudcode-api';
-import { CloudCodeAPITypes } from '@/services/cloudcode-api.types';
 import { useCurrentAntigravityAccount } from '@/modules/use-antigravity-account';
 import { logger } from '@/lib/logger';
-import { HistoryPanel, HistoryDialog, HistoryItemData } from './mockup-generator';
+import { HistoryPanel, HistoryDialog, HistoryItemData, ScreenDefinition, ScreenEditorDialog } from './mockup-generator';
+import ModelSelector from './ModelSelector';
 
-// Model option interface
-interface ModelOption {
-  id: string;
-  name: string;
-}
 
-// Aspect ratio options
-const ASPECT_RATIOS = [
-  { id: '9:16', name: 'Phone', width: 432, height: 768 },
-  { id: '16:9', name: 'Desktop', width: 768, height: 432 },
+// Platform options
+const PLATFORMS = [
+  { id: 'desktop', name: 'Desktop' },
+  { id: 'phone', name: 'Phone' },
 ] as const;
 
-type AspectRatioId = typeof ASPECT_RATIOS[number]['id'];
+// Fixed output dimensions (always 16:9 desktop size)
+const OUTPUT_DIMENSIONS = {
+  width: 768,
+  height: 432,
+  aspectRatio: '16:9'
+};
+
+type PlatformId = typeof PLATFORMS[number]['id'];
 
 // Design language options
 const DESIGN_LANGUAGES = [
@@ -49,22 +51,21 @@ interface GeneratedResult {
   imageUrl: string;
   prompt: string;
   model: string;
-  aspectRatio: string;
+  platform: string;
+  screens?: ScreenDefinition[];
   designLanguage: string;
+  fullPrompt?: string;
   timestamp: Date;
 }
 
 const MockupGenerator: React.FC<MockupGeneratorProps> = ({ className }) => {
   const currentAccount = useCurrentAntigravityAccount();
   
-  // Dynamic models state
-  const [models, setModels] = useState<ModelOption[]>([]);
-  const [isLoadingModels, setIsLoadingModels] = useState(false);
-  const [modelsError, setModelsError] = useState<string | null>(null);
+  // Model and project state
+  const [selectedModel, setSelectedModel] = useState<string>('gemini-3-pro-image');
   const [project, setProject] = useState<string>('');
-  
-  const [selectedModel, setSelectedModel] = useState<string>('');
-  const [selectedAspectRatio, setSelectedAspectRatio] = useState<AspectRatioId>(ASPECT_RATIOS[0].id);
+  const [selectedPlatform, setSelectedPlatform] = useState<PlatformId>(PLATFORMS[0].id);
+  const [screens, setScreens] = useState<ScreenDefinition[]>([]);
   const [selectedDesignLanguage, setSelectedDesignLanguage] = useState<DesignLanguageId>(DESIGN_LANGUAGES[0].id);
   const [prompt, setPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -74,6 +75,10 @@ const MockupGenerator: React.FC<MockupGeneratorProps> = ({ className }) => {
   // History state
   const [history, setHistory] = useState<HistoryItemData[]>([]);
   const [showHistoryDialog, setShowHistoryDialog] = useState(false);
+
+  // Screen Dialog state
+  const [isScreenDialogOpen, setIsScreenDialogOpen] = useState(false);
+  const [editingScreenIndex, setEditingScreenIndex] = useState<number | null>(null);
 
   const HISTORY_STORAGE_KEY = 'ui-design-generator-history';
   const MAX_HISTORY_ITEMS = 20;
@@ -105,72 +110,42 @@ const MockupGenerator: React.FC<MockupGeneratorProps> = ({ className }) => {
     }
   };
 
-  // Fetch available models on mount
-  useEffect(() => {
-    const fetchModels = async () => {
-      if (!currentAccount?.auth?.access_token) {
-        setModelsError('No authenticated account found');
-        return;
+  const constructFullPrompt = (
+    userPrompt: string, 
+    platformId: string, 
+    designLangId: string, 
+    screenDefs: ScreenDefinition[]
+  ): string => {
+    const platformName = PLATFORMS.find(p => p.id === platformId)?.name || platformId;
+    const designLang = DESIGN_LANGUAGES.find(d => d.id === designLangId)?.name || designLangId;
+    
+    // Build specific prompt parts based on platform
+    let platformContext = `Platform: ${platformName}`;
+    let layoutInstruction = `Output Format: Landscape (16:9) presentation functionality showcasing the ${platformId} interface.`;
+
+    if (platformId === 'phone') {
+      const screensContext = screenDefs.map((s, i) => `Screen ${i + 1}: ${s.title} - ${s.description}`).join('\n');
+      platformContext += `\n\nApp Screens to Showcase:\n${screensContext}`;
+      
+      if (screenDefs.length > 1) {
+        layoutInstruction += `\n\nLAYOUT REQUIREMENT: Create a clean, side-by-side presentation layout displaying ALL ${screenDefs.length} screens. The screens should be arranged horizontally with even spacing, similar to a Dribbble shot or design portfolio showcase. Ensure each screen is fully visible and clearly labeled if possible.`;
+      } else {
+         layoutInstruction += `\n\nPresent this single phone screen within a high-quality device frame or presentation setting that fits the 16:9 output aspect ratio.`;
       }
+    }
 
-      setIsLoadingModels(true);
-      setModelsError(null);
+    // Build a comprehensive UI/UX prompt
+    return `${MOCKUP_SYSTEM_PROMPT}
 
-      try {
-        // First, get the project from loadCodeAssist
-        const codeAssistResponse = await CloudCodeAPI.loadCodeAssist(currentAccount.auth.access_token);
-        const projectId = codeAssistResponse.cloudaicompanionProject;
-        setProject(projectId);
+Design Language: ${designLang}
+${platformContext}
+${layoutInstruction}
 
-        // Then fetch available models
-        const response = await CloudCodeAPI.fetchAvailableModels(
-          currentAccount.auth.access_token,
-          projectId
-        );
+User Request: ${userPrompt}
 
-        // Extract all models from the response (including non-image models)
-        const allModelIds = Object.keys(response.models || {});
-        const modelOptions: ModelOption[] = allModelIds.map((modelId: string) => {
-          // Try to get display name from models object
-          const modelData = response.models[modelId as keyof CloudCodeAPITypes.Models];
-          const displayName = modelData && 'displayName' in modelData 
-            ? modelData.displayName 
-            : modelId.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-          
-          return {
-            id: modelId,
-            name: displayName
-          };
-        });
+Generate a high-fidelity UI design based on the above specifications. The design should be clean, professional, and production-ready.`;
+  };
 
-        setModels(modelOptions);
-        
-        // Set default selected model (prefer image generation model if available)
-        if (modelOptions.length > 0 && !selectedModel) {
-          const imageModelIds = response.imageGenerationModelIds || [];
-          const defaultModel = imageModelIds[0] || modelOptions[0].id;
-          setSelectedModel(defaultModel);
-        }
-
-        logger.info('Fetched available models', {
-          module: 'MockupGenerator',
-          modelCount: modelOptions.length,
-          models: modelOptions.map(m => m.id)
-        });
-      } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Failed to fetch models';
-        setModelsError(errorMessage);
-        logger.error('Failed to fetch models', {
-          module: 'MockupGenerator',
-          error: errorMessage
-        });
-      } finally {
-        setIsLoadingModels(false);
-      }
-    };
-
-    fetchModels();
-  }, [currentAccount?.auth?.access_token]);
 
   const handleGenerate = async () => {
     if (!prompt.trim()) {
@@ -192,34 +167,27 @@ const MockupGenerator: React.FC<MockupGeneratorProps> = ({ className }) => {
     setError(null);
 
     try {
-      // Get the selected aspect ratio and design language
-      const aspectRatio = ASPECT_RATIOS.find(r => r.id === selectedAspectRatio) || ASPECT_RATIOS[0];
-      const designLang = DESIGN_LANGUAGES.find(d => d.id === selectedDesignLanguage)?.name || selectedDesignLanguage;
-      
-      // Build a comprehensive UI/UX prompt
-      const fullPrompt = `${MOCKUP_SYSTEM_PROMPT}
-
-Design Language: ${designLang}
-Aspect Ratio: ${aspectRatio.id} (${aspectRatio.width}x${aspectRatio.height})
-
-User Request: ${prompt}
-
-Generate a high-fidelity UI design based on the above specifications. The design should be clean, professional, and production-ready.`;
+      const fullPrompt = constructFullPrompt(
+        prompt,
+        selectedPlatform,
+        selectedDesignLanguage,
+        selectedPlatform === 'phone' ? screens : []
+      );
 
       logger.info('Generating image', {
         module: 'MockupGenerator',
         model: selectedModel,
-        aspectRatio: selectedAspectRatio,
+        platform: selectedPlatform,
         designLanguage: selectedDesignLanguage
       });
 
-      // Call the actual image generation API
+      // Call the actual image generation API - ALWAYS use fixed desktop dimensions
       const response = await CloudCodeAPI.generateImage(
         currentAccount.auth.access_token,
         selectedModel,
         fullPrompt,
         project,
-        selectedAspectRatio
+        OUTPUT_DIMENSIONS.aspectRatio
       );
 
       // Extract the generated image from the response
@@ -255,8 +223,10 @@ Generate a high-fidelity UI design based on the above specifications. The design
           imageUrl,
           prompt: prompt,
           model: selectedModel,
-          aspectRatio: selectedAspectRatio,
+          platform: selectedPlatform,
+          screens: selectedPlatform === 'phone' ? screens : undefined,
           designLanguage: selectedDesignLanguage,
+          fullPrompt: fullPrompt,
           timestamp: new Date(),
         };
         
@@ -306,6 +276,34 @@ Generate a high-fidelity UI design based on the above specifications. The design
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    toast.success('Download started');
+  };
+
+  const handleCopyPrompt = () => {
+    if (!result) return;
+    
+    let textToCopy = result.fullPrompt;
+    
+    // Fallback: Reconstruct prompt if missing (for legacy history items)
+    if (!textToCopy && result.prompt) {
+      textToCopy = constructFullPrompt(
+        result.prompt,
+        result.platform || 'desktop',
+        result.designLanguage || 'modern',
+        result.screens || []
+      );
+    }
+
+    if (!textToCopy) return;
+    
+    navigator.clipboard.writeText(textToCopy)
+      .then(() => {
+        toast.success('Prompt copied to clipboard');
+      })
+      .catch((err) => {
+        console.error('Failed to copy text: ', err);
+        toast.error('Failed to copy prompt');
+      });
   };
 
   // History handlers
@@ -314,8 +312,67 @@ Generate a high-fidelity UI design based on the above specifications. The design
     setResult(item);
     setPrompt(item.prompt);
     setSelectedModel(item.model);
-    setSelectedAspectRatio(item.aspectRatio as AspectRatioId);
+    // Backward compatibility for old history items that might have 'aspectRatio'
+    // If it has 'platform', use it, otherwise default to desktop
+    // Backward compatibility for old history items
+    const itemWithPlatform = item as any;
+    if (itemWithPlatform.prioritySrc) {
+        // Handle really old items if any
+    }
+
+    if (item.screens) {
+      setScreens(item.screens);
+    } else if (itemWithPlatform.screenTitle) {
+      // Map legacy single fields to array
+      setScreens([{ 
+        title: itemWithPlatform.screenTitle, 
+        description: itemWithPlatform.screenDescription || '' 
+      }]);
+    } else {
+      // Default empty
+      setScreens([]);
+    }
+
+    if (itemWithPlatform.platform) {
+      setSelectedPlatform(itemWithPlatform.platform as PlatformId);
+    } else {
+       setSelectedPlatform('desktop');
+    }
+    
     setSelectedDesignLanguage(item.designLanguage as DesignLanguageId);
+  };
+
+  const handleAddScreen = () => {
+    setScreens([...screens, { title: '', description: '' }]);
+  };
+
+  const handleRemoveScreen = (index: number) => {
+    const newScreens = [...screens];
+    newScreens.splice(index, 1);
+    setScreens(newScreens);
+  };
+
+  const openAddScreenDialog = () => {
+    setEditingScreenIndex(null);
+    setIsScreenDialogOpen(true);
+  };
+
+  const openEditScreenDialog = (index: number) => {
+    setEditingScreenIndex(index);
+    setIsScreenDialogOpen(true);
+  };
+
+  const handleSaveScreen = (screen: ScreenDefinition) => {
+    if (editingScreenIndex !== null) {
+      // Edit existing
+      const newScreens = [...screens];
+      newScreens[editingScreenIndex] = screen;
+      setScreens(newScreens);
+    } else {
+      // Add new
+      setScreens([...screens, screen]);
+    }
+    setIsScreenDialogOpen(false);
   };
 
   const handleDeleteHistoryItem = (id: string) => {
@@ -334,70 +391,82 @@ Generate a high-fidelity UI design based on the above specifications. The design
     setResult(null);
   };
 
+  const handleResetForm = () => {
+    setPrompt('');
+    setScreens([]);
+    setResult(null);
+  };
+
   return (
     <div className={cn('flex flex-row h-full', className)}>
       {/* Left Section - Controls */}
-      <div className="w-[35%] flex-shrink-0 border-r border-gray-200 dark:border-gray-800 p-6 space-y-6 overflow-y-auto">
-        <div className="flex items-center gap-2 mb-6">
-          <Sparkles className="h-5 w-5 text-blue-500" />
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-            UI Design Generator
-          </h2>
+      <div className="w-[35%] flex-shrink-0 border-r border-gray-200 dark:border-gray-800 p-4 space-y-4 overflow-y-auto">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-blue-500" />
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+              Generator
+            </h2>
+          </div>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={handleResetForm}
+              className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+              title="New Design"
+            >
+              <Plus className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => setShowHistoryDialog(true)}
+              className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors relative"
+              title="History"
+            >
+              <HistoryIcon className="h-4 w-4" />
+              {history.length > 0 && (
+                <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-blue-600 text-[10px] font-medium text-white shadow ring-2 ring-white dark:ring-gray-900">
+                  {history.length > 9 ? '9+' : history.length}
+                </span>
+              )}
+            </button>
+          </div>
         </div>
 
-        {/* Model Selector */}
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-            Model
-          </label>
-          {isLoadingModels ? (
-            <div className="w-full px-3 py-2 text-sm text-gray-500 dark:text-gray-400">
-              Loading models...
-            </div>
-          ) : modelsError ? (
-            <div className="w-full px-3 py-2 text-sm text-red-500 dark:text-red-400">
-              {modelsError}
-            </div>
-          ) : (
-            <AntSelect
-              value={selectedModel || undefined}
-              onChange={(v) => setSelectedModel(v)}
-              placeholder="Select a model"
-              disabled={models.length === 0}
-              options={models.map((model) => ({
-                value: model.id,
-                label: model.name,
-              }))}
-              className="w-full [&_.ant-select-selector]:!rounded-lg"
-            />
-          )}
-        </div>
+        {/* Model Selector - Hidden but used for project initialization */}
+        <ModelSelector
+          className="hidden"
+          value={selectedModel}
+          onChange={setSelectedModel}
+          filterType="image"
+          onProjectLoaded={setProject}
+        />
 
-        {/* Aspect Ratio Options */}
+        {/* Platform Options */}
         <div className="space-y-2">
-          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-            Aspect Ratio
+          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+            Platform
           </label>
           <div className="grid grid-cols-2 gap-2">
-            {ASPECT_RATIOS.map((ratio) => (
+            {PLATFORMS.map((platform) => (
               <button
-                key={ratio.id}
-                onClick={() => setSelectedAspectRatio(ratio.id)}
+                key={platform.id}
+                onClick={() => setSelectedPlatform(platform.id)}
                 className={cn(
-                  'px-3 py-2 text-sm rounded-lg border transition-colors',
-                  selectedAspectRatio === ratio.id
-                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
-                    : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500 text-gray-700 dark:text-gray-300'
+                  'px-3 py-1.5 text-sm font-medium rounded-lg border transition-all',
+                  selectedPlatform === platform.id
+                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 shadow-sm'
+                    : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-800'
                 )}
               >
-                {ratio.name}
+                {platform.name}
               </button>
             ))}
           </div>
         </div>
 
+    
+
         {/* Design Language Options */}
-        <div className="space-y-2">
+        <div className="space-y-3">
           <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
             Design Language
           </label>
@@ -420,7 +489,7 @@ Generate a high-fidelity UI design based on the above specifications. The design
         </div>
 
         {/* Input Prompt */}
-        <div className="space-y-2">
+        <div className="space-y-3">
           <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
             Prompt
           </label>
@@ -428,10 +497,76 @@ Generate a high-fidelity UI design based on the above specifications. The design
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             placeholder="Describe the UI/UX mockup you want to generate..."
-            rows={5}
+            rows={3}
             className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors resize-none"
           />
         </div>
+
+            {/* Phone Specific Inputs - Multiple Screens */}
+        {selectedPlatform === 'phone' && (
+          <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                App Screens
+              </label>
+              <button
+                onClick={openAddScreenDialog}
+                className="text-xs text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
+              >
+                + Add Screen
+              </button>
+            </div>
+            
+            <div className="space-y-2">
+              {screens.length === 0 ? (
+                <div 
+                  onClick={openAddScreenDialog}
+                  className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-lg hover:border-blue-400 dark:hover:border-blue-600 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-all cursor-pointer group text-center"
+                >
+                  <div className="p-2 bg-gray-100 dark:bg-gray-800 rounded-full mb-2 group-hover:bg-blue-100 dark:group-hover:bg-blue-900/30 transition-colors">
+                    <Plus className="h-4 w-4 text-gray-400 group-hover:text-blue-500" />
+                  </div>
+                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-200">
+                    No screens added
+                  </p>
+                  <p className="text-[10px] text-gray-400 group-hover:text-blue-500 mt-0.5">
+                    Click to add your first screen
+                  </p>
+                </div>
+              ) : (
+                screens.map((screen, index) => (
+                  <div key={index} className="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700 relative group flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-sm text-gray-900 dark:text-gray-100 truncate">
+                        {screen.title || <span className="text-gray-400 italic">Untitled Screen</span>}
+                      </div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                        {screen.description || <span className="text-gray-400 italic">No description</span>}
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        onClick={() => openEditScreenDialog(index)}
+                        className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors"
+                        title="Edit"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => handleRemoveScreen(index)}
+                        className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                        title="Remove"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Error Message */}
         {error && (
@@ -453,8 +588,7 @@ Generate a high-fidelity UI design based on the above specifications. The design
         </BaseButton>
 
         {/* Divider */}
-        <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
-          {/* History Panel */}
+        {/* <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
           <HistoryPanel
             history={history}
             onSelect={handleSelectHistoryItem}
@@ -462,7 +596,7 @@ Generate a high-fidelity UI design based on the above specifications. The design
             onClearAll={handleClearHistory}
             onSeeAll={() => setShowHistoryDialog(true)}
           />
-        </div>
+        </div> */}
       </div>
 
       {/* Right Section - Result */}
@@ -472,14 +606,25 @@ Generate a high-fidelity UI design based on the above specifications. The design
             Result
           </h3>
           {result && (
-            <BaseButton
-              variant="outline"
-              size="sm"
-              onClick={handleDownload}
-              leftIcon={<Download className="h-4 w-4" />}
-            >
-              Download
-            </BaseButton>
+            <div className="flex items-center gap-2">
+              <BaseButton
+                variant="outline"
+                size="sm"
+                onClick={handleCopyPrompt}
+                leftIcon={<Copy className="h-4 w-4" />}
+                title="Copy complete prompt"
+              >
+                Copy Prompt
+              </BaseButton>
+              <BaseButton
+                variant="outline"
+                size="sm"
+                onClick={handleDownload}
+                leftIcon={<Download className="h-4 w-4" />}
+              >
+                Download
+              </BaseButton>
+            </div>
           )}
         </div>
 
@@ -497,7 +642,7 @@ Generate a high-fidelity UI design based on the above specifications. The design
                 className="max-w-full max-h-full object-contain rounded-lg shadow-lg"
               />
               <div className="mt-4 text-xs text-gray-500 dark:text-gray-400 text-center">
-                <p>Model: {models.find(m => m.id === result.model)?.name || result.model}</p>
+                <p>Model: {result.model}</p>
                 <p>Design: {DESIGN_LANGUAGES.find(d => d.id === result.designLanguage)?.name}</p>
                 <p>Generated at: {result.timestamp.toLocaleTimeString()}</p>
               </div>
@@ -520,6 +665,14 @@ Generate a high-fidelity UI design based on the above specifications. The design
         onSelect={handleSelectHistoryItem}
         onDelete={handleDeleteHistoryItem}
         onClearAll={handleClearHistory}
+      />
+
+      {/* Screen Editor Dialog */}
+      <ScreenEditorDialog
+        open={isScreenDialogOpen}
+        onClose={() => setIsScreenDialogOpen(false)}
+        screen={editingScreenIndex !== null ? screens[editingScreenIndex] : undefined}
+        onSave={handleSaveScreen}
       />
     </div>
   );

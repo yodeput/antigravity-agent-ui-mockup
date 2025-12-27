@@ -216,5 +216,63 @@ export namespace CloudCodeAPI {
     return actualResponse;
   }
 
+  /**
+   * Generate text content using Google Gemini models
+   * @param accessToken The user's access token for authentication
+   * @param modelId The model ID to use (e.g., 'gemini-2.0-flash')
+   * @param prompt The text prompt
+   * @param project The project ID from loadCodeAssist
+   * @param systemPrompt Optional system prompt for context
+   * @returns The generated text response
+   */
+  export async function generateText(
+    accessToken: string,
+    modelId: string,
+    prompt: string,
+    project: string,
+    systemPrompt?: string,
+  ): Promise<CloudCodeAPITypes.GenerateImageResponse> {
+    // Combine system prompt with user prompt if provided
+    const fullPrompt = systemPrompt 
+      ? `${systemPrompt}\n\n---\n\n${prompt}`
+      : prompt;
+
+    const requestData = {
+      project: project,
+      model: modelId,
+      request: {
+        contents: [{
+          parts: [{ text: fullPrompt }]
+        }]
+      }
+    };
+
+    console.log('[CloudCodeAPI] generateText request:', {
+      model: modelId,
+      project: project,
+      promptLength: fullPrompt.length
+    });
+
+    const response = await post<any>(
+      '/v1internal:generateContent',
+      requestData,
+      {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`
+        }
+      }
+    );
+
+    console.log('[CloudCodeAPI] generateText response:', response);
+    
+    if ("error" in response) {
+      console.error('[CloudCodeAPI] generateText error:', response.error);
+      return Promise.reject(response);
+    }
+
+    const actualResponse = response.response || response;
+    return actualResponse;
+  }
+
 }
 
